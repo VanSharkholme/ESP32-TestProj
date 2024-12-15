@@ -123,7 +123,7 @@
         "protocal.h": "c",
         "string.h": "c"
     },
-    "idf.flashType": "UART",
-    "idf.portWin": "COM5",
+    "idf.flashType": "JTAG",
+    "idf.portWin": "COM14",
     // "idf.gitPathWin": "F:\\Espressif\\Tools\\tools\\idf-git\\2.39.2\\cmd\\git.exe"
 }
