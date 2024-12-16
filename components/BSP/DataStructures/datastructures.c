@@ -208,21 +208,21 @@ void init_plans()
 
 void plan_to_data(Plan *plan, uint8_t channel_id, uint8_t *out_data)
 {
-    out_data[0] = (plan->id & 0x0F) << 4 | (channel_id & 0x0F);
+    out_data[0] = (plan->id & 0x0F) << 4 | ((1 << channel_id) & 0x0F);
     out_data[1] = plan->wave_type;
     out_data[2] = plan->current_mA;
     out_data[3] = 0;
-    out_data[4] = plan->pulse_width & 0xFF00 >> 8;
+    out_data[4] = (plan->pulse_width & 0xFF00) >> 8;
     out_data[5] = plan->pulse_width & 0x00FF;
     out_data[6] = plan->pulse_interval;
     out_data[7] = plan->freq_type;
-    out_data[8] = plan->freq_min & 0xFF00 >> 8;
+    out_data[8] = (plan->freq_min & 0xFF00) >> 8;
     out_data[9] = plan->freq_min & 0x00FF;
-    out_data[10] = plan->freq_max & 0xFF00 >> 8;
+    out_data[10] = (plan->freq_max & 0xFF00) >> 8;
     out_data[11] = plan->freq_max & 0x00FF;
-    out_data[12] = plan->wave_rise & 0xFF00 >> 8;
+    out_data[12] = (plan->wave_rise & 0xFF00) >> 8;
     out_data[13] = plan->wave_rise & 0x00FF;
-    out_data[14] = plan->wave_fall & 0xFF00 >> 8;
+    out_data[14] = (plan->wave_fall & 0xFF00) >> 8;
     out_data[15] = plan->wave_fall & 0x00FF;
     out_data[16] = plan->work_time;
     out_data[17] = 0;

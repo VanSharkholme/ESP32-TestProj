@@ -95,47 +95,47 @@ void cmd_handler(frame_t *f)
         }
         case PROTOCAL_CMD_WRITE_PREDEFINED_PLAN:
         {
-            // if (f->cmd_type == PROTOCAL_CMD_TYPE_WRITE_PLAN_NAME)
-            // {
-            //     uint8_t plan_id = f->data[0];
-            //     uint8_t name_len = f->data[1];
-            //     uint8_t seg_num = f->data[2];
-            //     saved_plans[plan_id].id = plan_id;
-            //     saved_plans[plan_id].name_len = name_len;
-            //     memcpy(saved_plans[plan_id].name, &f->data[3], name_len);
-            //     // nvs_save_plans(saved_plans);
-            //     // no_data_respond(f);
-            // }
-            // else if (f->cmd_type == PROTOCAL_CMD_TYPE_WRITE_PLAN_BASE_SETTING)
-            // {
-            //     uint8_t plan_id = f->data[0];
-            //     saved_plans[plan_id].id = plan_id;
-            //     schemeType_t scheme_type = (schemeType_t)f->data[1];
-            //     saved_plans[plan_id].scheme_type = scheme_type;
-            //     // nvs_save_plans(saved_plans);
-            //     // ens_uart_send(f->raw_data, f->raw_data_len);
-            //     // no_data_respond(f);
-            // }
-            // else if (f->cmd_type == PROTOCAL_CMD_TYPE_WRITE_PLAN_CHANNEL_SETTING)
-            // {
-            //     uint8_t plan_id = f->data[0] >> 4;
-            //     saved_plans[plan_id].id = plan_id;
-            //     saved_plans[plan_id].wave_type = f->data[1];
-            //     saved_plans[plan_id].current_mA = f->data[2];
-            //     saved_plans[plan_id].pulse_width = (uint16_t)(f->data[4] << 8 | f->data[5]);
-            //     saved_plans[plan_id].pulse_interval = f->data[6];
-            //     saved_plans[plan_id].freq_type = f->data[7];
-            //     saved_plans[plan_id].freq_min = (uint16_t)(f->data[8] << 8 | f->data[9]);
-            //     saved_plans[plan_id].freq_max = (uint16_t)(f->data[10] << 8 | f->data[11]);
-            //     saved_plans[plan_id].wave_rise = (uint16_t)(f->data[12] << 8 | f->data[13]);
-            //     saved_plans[plan_id].wave_fall = (uint16_t)(f->data[14] << 8 | f->data[15]);
-            //     saved_plans[plan_id].work_time = f->data[16];
-            //     saved_plans[plan_id].break_time = f->data[18];
-            //     saved_plans[plan_id].total_time_min = f->data[20];
-            //     // nvs_save_plans(saved_plans);
-            // }
-            no_data_respond(f);
-            ens_uart_send(f->raw_data, f->raw_data_len);
+            if (f->cmd_type == PROTOCAL_CMD_TYPE_WRITE_PLAN_NAME)
+            {
+                uint8_t plan_id = f->data[0];
+                uint8_t name_len = f->data[1];
+                uint8_t seg_num = f->data[2];
+                saved_plans[plan_id - 1].id = plan_id;
+                saved_plans[plan_id - 1].name_len = name_len;
+                memcpy(saved_plans[plan_id - 1].name, &f->data[3], name_len);
+                nvs_save_plans(saved_plans);
+                no_data_respond(f);
+            }
+            else if (f->cmd_type == PROTOCAL_CMD_TYPE_WRITE_PLAN_BASE_SETTING)
+            {
+                uint8_t plan_id = f->data[0];
+                saved_plans[plan_id - 1].id = plan_id;
+                schemeType_t scheme_type = (schemeType_t)f->data[1];
+                saved_plans[plan_id - 1].scheme_type = scheme_type;
+                nvs_save_plans(saved_plans);
+                ens_uart_send(f->raw_data, f->raw_data_len);
+                no_data_respond(f);
+            }
+            else if (f->cmd_type == PROTOCAL_CMD_TYPE_WRITE_PLAN_CHANNEL_SETTING)
+            {
+                uint8_t plan_id = f->data[0] >> 4;
+                saved_plans[plan_id - 1].id = plan_id;
+                saved_plans[plan_id - 1].wave_type = f->data[1];
+                saved_plans[plan_id - 1].current_mA = f->data[2];
+                saved_plans[plan_id - 1].pulse_width = (uint16_t)(f->data[4] << 8 | f->data[5]);
+                saved_plans[plan_id - 1].pulse_interval = f->data[6];
+                saved_plans[plan_id - 1].freq_type = f->data[7];
+                saved_plans[plan_id - 1].freq_min = (uint16_t)(f->data[8] << 8 | f->data[9]);
+                saved_plans[plan_id - 1].freq_max = (uint16_t)(f->data[10] << 8 | f->data[11]);
+                saved_plans[plan_id - 1].wave_rise = (uint16_t)(f->data[12] << 8 | f->data[13]);
+                saved_plans[plan_id - 1].wave_fall = (uint16_t)(f->data[14] << 8 | f->data[15]);
+                saved_plans[plan_id - 1].work_time = f->data[16];
+                saved_plans[plan_id - 1].break_time = f->data[18];
+                saved_plans[plan_id - 1].total_time_min = f->data[20];
+                nvs_save_plans(saved_plans);
+                no_data_respond(f);
+                ens_uart_send(f->raw_data, f->raw_data_len);
+            }
             break;
         }
         case PROTOCAL_CMD_READ_PREDEFINED_PLAN:
