@@ -96,7 +96,7 @@ void ens_start_channel_plan(Plan *pPlan, uint8_t index)
     ens_uart_send_plan(pPlan, index);
     uint8_t start_stim_data = 0;
     start_stim_data |= pPlan->id << 4;
-    start_stim_data |= index;
+    start_stim_data |= 1 << index;
     ens_uart_send_cmd(0x30, 0x10, &start_stim_data, 1);
 }
 
