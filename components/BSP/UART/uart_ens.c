@@ -96,14 +96,16 @@ void ens_start_channel_plan(Plan *pPlan, uint8_t index)
     ens_uart_send_plan(pPlan, index);
     uint8_t start_stim_data = 0;
     start_stim_data |= pPlan->id << 4;
-    start_stim_data |= index;
+    start_stim_data |= 1 << index;
     ens_uart_send_cmd(0x30, 0x10, &start_stim_data, 1);
 }
 
 void ens_stop_channel_plan(Plan *pPlan, uint8_t index)
 {
-    uint8_t stop_stim_data = 0;
-    stop_stim_data |= pPlan->id << 4;
-    stop_stim_data |= index;
-    ens_uart_send_cmd(0x31, 0x10, &stop_stim_data, 1);
+    // uint8_t stop_stim_data = 0;
+    // stop_stim_data |= pPlan->id << 4;
+    // stop_stim_data |= index;
+    // ens_uart_send_cmd(0x31, 0x10, &stop_stim_data, 1);
+    // TODO: Implement stop single channel plan command
+    ens_uart_send_cmd(0x31, 0x10, NULL, 0);
 }

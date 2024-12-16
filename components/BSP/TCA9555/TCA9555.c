@@ -2,10 +2,15 @@
 //#include "CustomUI.h"
 #include "FuelGauge.h"
 
+void set_battery_level(uint8_t soc);
+
 i2c_master_dev_handle_t TCA9555_dev_handle = NULL;
 PIN_IO pin_io_old,pin_io;
 StateWork statework;
 static const char *TAG = "TCA9555";
+
+static SemaphoreHandle_t tca9555_mutex = NULL;
+
 void TCA9555_Dev_Init(i2c_master_bus_handle_t bus_handle)
 {
     if (bus_handle == NULL)
@@ -27,6 +32,11 @@ void TCA9555_Dev_Init(i2c_master_bus_handle_t bus_handle)
     PCA9546_DeselectChannel(TCA9555_I2C_CHANNEL);
     TCA9555_dev_handle = NULL;
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &TCA9555_config, &TCA9555_dev_handle));
+    tca9555_mutex = xSemaphoreCreateMutex();
+    if (tca9555_mutex == NULL)
+    {
+        ESP_LOGE(TAG, "Failed to create mutex");
+    }
 }
 
 void TCA9555_Init()
@@ -42,17 +52,21 @@ void TCA9555_Init()
 
 void TCA9555_WriteReg(uint8_t reg_addr, uint8_t data)
 {
+    xSemaphoreTake(tca9555_mutex, portMAX_DELAY);
     uint8_t write_data[2] = {reg_addr, data};
     PCA9546_SelectChannel(TCA9555_I2C_CHANNEL);
     i2c_master_transmit(TCA9555_dev_handle, write_data, 2, -1);
     PCA9546_DeselectChannel(TCA9555_I2C_CHANNEL);
+    xSemaphoreGive(tca9555_mutex);
 }
 
 void TCA9555_ReadReg(uint8_t reg_addr, uint8_t *data)
 {
+    xSemaphoreTake(tca9555_mutex, portMAX_DELAY);
     PCA9546_SelectChannel(TCA9555_I2C_CHANNEL);
     i2c_master_transmit_receive(TCA9555_dev_handle, &reg_addr, 1, data, 1, -1);
     PCA9546_DeselectChannel(TCA9555_I2C_CHANNEL);
+    xSemaphoreGive(tca9555_mutex);
 }
 
 void TCA9555_SetPinDir(uint8_t pin, TCA9555_PIN_MODE_T mode)
@@ -145,25 +159,25 @@ uint8_t read_pin(uint8_t pin)
 }
 void tca9555_task(void *arg)
 {
-uint8_t data[2];
-//  gpio_set_pull_mode(CTRL_I2C_START_NUM,GPIO_FLOATING);
-//  gpio_set_direction(CTRL_I2C_START_NUM, GPIO_MODE_OUTPUT);
-//   gpio_set_level(CTRL_I2C_START_NUM,0);
-//   vTaskDelay(pdMS_TO_TICKS(1000));
-//   gpio_set_level(CTRL_I2C_START_NUM,1);
+    uint8_t data[2];
+    //  gpio_set_pull_mode(CTRL_I2C_START_NUM,GPIO_FLOATING);
+    //  gpio_set_direction(CTRL_I2C_START_NUM, GPIO_MODE_OUTPUT);
+    //   gpio_set_level(CTRL_I2C_START_NUM,0);
+    //   vTaskDelay(pdMS_TO_TICKS(1000));
+    //   gpio_set_level(CTRL_I2C_START_NUM,1);
 
-TCA9555_ReadReg(TCA9555_REG_INPUT_PORT0, data);
-TCA9555_ReadReg(TCA9555_REG_INPUT_PORT1, data+1);
-pin_io_old.pin_data = data[0] | (data[1]<<8);
-pin_io.pin_data = data[0] | (data[1]<<8);
+    TCA9555_ReadReg(TCA9555_REG_INPUT_PORT0, data);
+    TCA9555_ReadReg(TCA9555_REG_INPUT_PORT1, data+1);
+    pin_io_old.pin_data = data[0] | (data[1]<<8);
+    pin_io.pin_data = data[0] | (data[1]<<8);
 
 
-pin_io_old.pin_bit.pin_chr_sta_ind = pin_io_old.pin_bit.pin_chr_sta_ind ^ 1;
-ESP_LOGI(TAG, "TCA9555_PIN_CHR_STA_IND  data0 %02x data1  %02x pin_io %04x",data[0],data[1],pin_io.pin_data);
-//MUX_choose(MUX_TCA9555);
-TCA9555_SetPinState(TCA9555_PIN_5V_PWR,1);
-statework.st_data = 0;
-statework.st_bit.StOn = 1;
+    pin_io_old.pin_bit.pin_chr_sta_ind = pin_io_old.pin_bit.pin_chr_sta_ind ^ 1;
+    ESP_LOGI(TAG, "TCA9555_PIN_CHR_STA_IND  data0 %02x data1  %02x pin_io %04x",data[0],data[1],pin_io.pin_data);
+    //MUX_choose(MUX_TCA9555);
+    TCA9555_SetPinState(TCA9555_PIN_5V_PWR,1);
+    statework.st_data = 0;
+    statework.st_bit.StOn = 1;
     for(;;)
     { 
         checkIO();
@@ -240,7 +254,7 @@ void checkIO(void)
         uint8_t buf[2] = {0x2C, 0x2D};
         FuelGauge_ReadReg(buf, buf);
         ESP_LOGI(TAG, "Fuel Gauge: %02X %02X", buf[0], buf[1]); 
-        //set_battery_level(buf[0]);
+        set_battery_level(buf[0]);
         if(buf[0] == 100)
             statework.st_bit.StChrgOK = 1;
         else if(buf[0] < 50)

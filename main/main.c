@@ -145,7 +145,7 @@ void app_main(void)
 
     //xTaskCreate(test_task, "test_task", 4096, NULL, 1, NULL);
 
-    xTaskCreate(tca9555_task, "tca9555_task", 4096, NULL, 2, NULL);
+    xTaskCreate(tca9555_task, "tca9555_task", 4096, NULL, 1, NULL);
 
     // IMU_read_data(accel_data, gyro_data, 256);
     // for (uint16_t i = 0; i < 256; i++)

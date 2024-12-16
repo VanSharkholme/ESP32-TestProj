@@ -121,7 +121,8 @@
         "custom_types.h": "c",
         "callbacks.h": "c",
         "protocal.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "tca9555.h": "c"
     },
     "idf.flashType": "JTAG",
     "idf.portWin": "COM14",
