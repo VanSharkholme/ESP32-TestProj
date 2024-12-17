@@ -188,6 +188,25 @@ void channel_timer_cb(lv_timer_t *timer)
     // return false;
 }
 
+void check_last_channel_finished(void)
+{
+    bool all_finished = true;
+    for (uint8_t i = 0; i < 4; ++i) {
+        lv_obj_t *channel = get_channel_by_index(i);
+        UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
+        if (ch->state == UI_CHANNEL_STATE_ADDED)
+            all_finished &= ch->timer.state == UI_TIMER_STATE_STOP;
+    }
+    if (all_finished)
+    {
+        lv_obj_t *btn = lv_obj_get_child(main_scr, 3);
+        bool *is_stimulation_running = (bool *) lv_obj_get_user_data(btn);
+        *is_stimulation_running = !(*is_stimulation_running);
+        lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Green_fit, NULL);
+        statework.st_bit.StRun = 0;
+    }    
+}
+
 void set_channel_timer_state(lv_obj_t *channel, UI_ChannelTimerState state)
 {
     UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
@@ -203,9 +222,12 @@ void set_channel_timer_state(lv_obj_t *channel, UI_ChannelTimerState state)
         {
             // gptimer_disable(ch->timer.timer_handle);
             // gptimer_del_timer(ch->timer.timer_handle);
+            lv_timer_del(ch->timer.lvtimer);
             ch->timer.remaining_seconds = ch->pPlan->total_time_min * 60;
         }
         
+
+        check_last_channel_finished();
     }
     else if (ch->timer.state == UI_TIMER_STATE_START)
     {
@@ -220,6 +242,8 @@ void set_channel_timer_state(lv_obj_t *channel, UI_ChannelTimerState state)
         }
         lv_timer_resume(ch->timer.lvtimer);
         // gptimer_start(ch->timer.timer_handle);
+        statework.st_bit.StRun = 1;
+
     }
 
 
@@ -414,7 +438,7 @@ void set_channel_state(lv_obj_t *channel, UI_ChannelState state) {
 
 void clear_all_channels()
 {
-    if (ChannelA.timer.state != UI_TIMER_STATE_UNINIT)
+    if (ChannelA.timer.state == UI_TIMER_STATE_START)
     {
         ens_stop_channel_plan(ChannelA.pPlan, ChannelA.index);
         lv_timer_del(ChannelA.timer.lvtimer);
@@ -423,7 +447,7 @@ void clear_all_channels()
         // gptimer_del_timer(ChannelA.timer.timer_handle);
     }
     
-    if (ChannelB.timer.state != UI_TIMER_STATE_UNINIT)
+    if (ChannelB.timer.state == UI_TIMER_STATE_START)
     {
         ens_stop_channel_plan(ChannelB.pPlan, ChannelB.index);
         lv_timer_del(ChannelB.timer.lvtimer);
@@ -432,7 +456,7 @@ void clear_all_channels()
         // gptimer_del_timer(ChannelB.timer.timer_handle);
     }
     
-    if (ChannelC.timer.state != UI_TIMER_STATE_UNINIT)
+    if (ChannelC.timer.state == UI_TIMER_STATE_START)
     {
         ens_stop_channel_plan(ChannelC.pPlan, ChannelC.index);
         lv_timer_del(ChannelC.timer.lvtimer);
@@ -441,7 +465,7 @@ void clear_all_channels()
         // gptimer_del_timer(ChannelC.timer.timer_handle);
     }
     
-    if (ChannelD.timer.state != UI_TIMER_STATE_UNINIT)
+    if (ChannelD.timer.state == UI_TIMER_STATE_START)
     {
         ens_stop_channel_plan(ChannelD.pPlan, ChannelD.index);
         lv_timer_del(ChannelD.timer.lvtimer);

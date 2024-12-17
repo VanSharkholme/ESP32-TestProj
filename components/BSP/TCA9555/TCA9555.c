@@ -3,6 +3,8 @@
 #include "FuelGauge.h"
 
 void set_battery_level(uint8_t soc);
+bool lvgl_lock(void);
+void lvgl_unlock(void);
 
 i2c_master_dev_handle_t TCA9555_dev_handle = NULL;
 PIN_IO pin_io_old,pin_io;
@@ -254,10 +256,14 @@ void checkIO(void)
         uint8_t buf[2] = {0x2C, 0x2D};
         FuelGauge_ReadReg(buf, buf);
         ESP_LOGI(TAG, "Fuel Gauge: %02X %02X", buf[0], buf[1]); 
-        set_battery_level(buf[0]);
-        if(buf[0] == 100)
+        if(lvgl_lock())
+        {
+            set_battery_level(buf[0]);
+            lvgl_unlock();
+        }
+        if(buf[0] > 90)
             statework.st_bit.StChrgOK = 1;
-        else if(buf[0] < 50)
+        else if(buf[0] < 20)
             statework.st_bit.StPowerLow = 1;
         else
         {

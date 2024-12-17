@@ -14,6 +14,7 @@
 #include "Callbacks.h"
 #include "data_structures.h"
 #include "datastructures.h"
+#include "TCA9555.h"
 #include "timer.h"
 
 LV_IMG_DECLARE(AddButton_Green_fit)

@@ -113,7 +113,7 @@ void cmd_handler(frame_t *f)
                 schemeType_t scheme_type = (schemeType_t)f->data[1];
                 saved_plans[plan_id - 1].scheme_type = scheme_type;
                 nvs_save_plans(saved_plans);
-                ens_uart_send(f->raw_data, f->raw_data_len);
+                // ens_uart_send(f->raw_data, f->raw_data_len);
                 no_data_respond(f);
             }
             else if (f->cmd_type == PROTOCAL_CMD_TYPE_WRITE_PLAN_CHANNEL_SETTING)
@@ -134,7 +134,7 @@ void cmd_handler(frame_t *f)
                 saved_plans[plan_id - 1].total_time_min = f->data[20];
                 nvs_save_plans(saved_plans);
                 no_data_respond(f);
-                ens_uart_send(f->raw_data, f->raw_data_len);
+                // ens_uart_send(f->raw_data, f->raw_data_len);
             }
             break;
         }

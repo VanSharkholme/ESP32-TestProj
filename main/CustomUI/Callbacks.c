@@ -492,7 +492,7 @@ void StimulationStartBtnCallback(lv_event_t *event)
             for (int i = 0; i < 4; ++i) {
                 lv_obj_t *channel = get_channel_by_index(i);
                 UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
-                if (i == 2) { // 模拟阻抗测试未通过
+                if (0) { // 模拟阻抗测试未通过
                     if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
                         set_channel_state(channel, UI_CHANNEL_STATE_DROPPED);
                 }

@@ -179,7 +179,7 @@ void init_plans()
     // uint8_t scheme_count = nvs_get_schemeset_count();
     nvs_get_plans(saved_plans);
     ESP_LOGI("init_plans", "read plans");
-    // print_plans(saved_plans);
+    print_plans(saved_plans);
     for (uint8_t i = 0; i < MAX_PLAN_NUM; i++) {
         if (saved_plans[i].id == 0 || saved_plans[i].id > 15)
         {
