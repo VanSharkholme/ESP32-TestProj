@@ -38,45 +38,59 @@ void BackBtnCallback(lv_event_t *event)
     lv_scr_load(main_scr);
 }
 
-void SchemeDropdownCallback(lv_event_t *event)
+void PlanOptionCallback(lv_event_t *event)
 {
-    lv_obj_t *scheme_set_dropdown = lv_event_get_target(event);
-    SchemeSet *scheme_set = (SchemeSet*) lv_obj_get_user_data(scheme_set_dropdown);
+    lv_obj_t *plan_option = lv_event_get_target(event);
+    Plan *plan = (Plan *) lv_obj_get_user_data(plan_option);
     lv_obj_t *channel = (lv_obj_t *) lv_obj_get_user_data(scheme_scr);
     UI_Channel *ch = (UI_Channel *)lv_obj_get_user_data(channel);
-    uint8_t plan_index = lv_dropdown_get_selected(scheme_set_dropdown);
+    uint8_t plan_index = lv_dropdown_get_selected(plan_option);
     ch->pPlan = lv_mem_alloc(sizeof(Plan));
-    memcpy(ch->pPlan, scheme_set->plans[plan_index], sizeof(Plan));
-    ch->timer.remaining_seconds = scheme_set->plans[plan_index]->total_time_min * 60;
+    memcpy(ch->pPlan, plan, sizeof(Plan));
+    ch->timer.remaining_seconds = plan->total_time_min * 60;
     set_channel_state(channel, UI_CHANNEL_STATE_ADDED);
     lv_scr_load(main_scr);
 }
 
 void ClearBtnCallback(lv_event_t *event)
 {
+    for (int i = 0; i < 4; ++i) {
+        lv_obj_t *channel = get_channel_by_index(i);
+        UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
+        if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
+            set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
+    }
     clear_all_channels();
 }
 
 void PrevPageBtnCallback(lv_event_t *event)
 {
-    current_page_num = ((current_page_num - 1) % UI_SCHEME_PAGE_NUM + UI_SCHEME_PAGE_NUM) % UI_SCHEME_PAGE_NUM;
+    if (valid_page_num == 1)
+    {
+        return;
+    }
+    current_page_num = ((current_page_num - 1) % valid_page_num + valid_page_num) % valid_page_num;
     lv_obj_t *btn = lv_event_get_target(event);
     lv_obj_t *container = lv_obj_get_parent(btn);
     lv_obj_t *page_num_label = lv_obj_get_child(container, 1);
     lv_obj_t *scheme_set_list_container = lv_obj_get_user_data(btn);
     set_scheme_set_page(scheme_set_list_container, current_page_num);
-    lv_label_set_text_fmt(page_num_label, "第%d:%d页", current_page_num + 1, UI_SCHEME_PAGE_NUM);
+    lv_label_set_text_fmt(page_num_label, "第%d:%d页", current_page_num + 1, valid_page_num);
 }
 
 void NextPageBtnCallback(lv_event_t *event)
 {
-    current_page_num = (current_page_num + 1) % UI_SCHEME_PAGE_NUM;
+    if (valid_page_num == 1)
+    {
+        return;
+    }
+    current_page_num = (current_page_num + 1) % valid_page_num;
     lv_obj_t *btn = lv_event_get_target(event);
     lv_obj_t *container = lv_obj_get_parent(btn);
     lv_obj_t *page_num_label = lv_obj_get_child(container, 1);
     lv_obj_t *scheme_set_list_container = lv_obj_get_user_data(btn);
     set_scheme_set_page(scheme_set_list_container, current_page_num);
-    lv_label_set_text_fmt(page_num_label, "第%d:%d页", current_page_num + 1, UI_SCHEME_PAGE_NUM);
+    lv_label_set_text_fmt(page_num_label, "第%d:%d页", current_page_num + 1, valid_page_num);
 }
 
 void AddCurrentBtnCallback(lv_event_t *event)
@@ -186,14 +200,14 @@ void SyncAdjustBtnCallback(lv_event_t *event)
     lv_imgbtn_set_src(sync_add_btn, LV_IMGBTN_STATE_RELEASED, NULL, &AddButton_White_140_fit, NULL);
     lv_imgbtn_set_src(sync_add_btn, LV_IMGBTN_STATE_PRESSED, NULL, &AddButton_Green_fit, NULL);
     lv_obj_set_size(sync_add_btn, AddButton_White_140_fit.header.w, AddButton_White_140_fit.header.h);
-    lv_obj_align(sync_add_btn, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_align(sync_add_btn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
     lv_obj_add_event_cb(sync_add_btn, SyncAddBtnCallback, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t *sync_sub_btn = lv_imgbtn_create(sync_adjust_container);
     lv_imgbtn_set_src(sync_sub_btn, LV_IMGBTN_STATE_RELEASED, NULL, &SubtractButton_White_140_fit, NULL);
     lv_imgbtn_set_src(sync_sub_btn, LV_IMGBTN_STATE_PRESSED, NULL, &SubtractButton_fit, NULL);
     lv_obj_set_size(sync_sub_btn, SubtractButton_White_140_fit.header.w, SubtractButton_White_140_fit.header.h);
-    lv_obj_align(sync_sub_btn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+    lv_obj_align(sync_sub_btn, LV_ALIGN_BOTTOM_LEFT, 0, 0);
     lv_obj_add_event_cb(sync_sub_btn, SyncSubBtnCallback, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t *confirm_btn = lv_imgbtn_create(modal_bg);
@@ -562,7 +576,7 @@ void ChannelLabelClickCallback(lv_event_t *event)
 
     lv_obj_t *plan_name_label = lv_label_create(modal_bg);
     lv_label_set_text_fmt(plan_name_label, "方案名称: %s", pPlan->name);
-    lv_obj_set_style_text_font(plan_name_label, &AliPuHui_28, 0);
+    lv_obj_set_style_text_font(plan_name_label, &AliPuHui_24, 0);
     lv_obj_set_style_text_color(plan_name_label, lv_color_white(), 0);
     lv_obj_align(plan_name_label, LV_ALIGN_TOP_LEFT, 30, 80);
 
@@ -584,19 +598,19 @@ void ChannelLabelClickCallback(lv_event_t *event)
     default:
         break;
     }
-    lv_obj_set_style_text_font(wave_type_label, &AliPuHui_28, 0);
+    lv_obj_set_style_text_font(wave_type_label, &AliPuHui_24, 0);
     lv_obj_set_style_text_color(wave_type_label, lv_color_white(), 0);
     lv_obj_align(wave_type_label, LV_ALIGN_TOP_LEFT, 30, 120);
 
     lv_obj_t *freq_label = lv_label_create(modal_bg);
     lv_label_set_text_fmt(freq_label, "频率: %d Hz", pPlan->freq_min);
-    lv_obj_set_style_text_font(freq_label, &AliPuHui_28, 0);
+    lv_obj_set_style_text_font(freq_label, &AliPuHui_24, 0);
     lv_obj_set_style_text_color(freq_label, lv_color_white(), 0);
     lv_obj_align(freq_label, LV_ALIGN_TOP_LEFT, 30, 160);
 
     lv_obj_t *pulse_width_label = lv_label_create(modal_bg);
     lv_label_set_text_fmt(pulse_width_label, "脉宽: %d us", pPlan->pulse_width);
-    lv_obj_set_style_text_font(pulse_width_label, &AliPuHui_28, 0);
+    lv_obj_set_style_text_font(pulse_width_label, &AliPuHui_24, 0);
     lv_obj_set_style_text_color(pulse_width_label, lv_color_white(), 0);
     lv_obj_align(pulse_width_label, LV_ALIGN_TOP_LEFT, 30, 200);
 }

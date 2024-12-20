@@ -57,7 +57,9 @@ void TCA9555_WriteReg(uint8_t reg_addr, uint8_t data)
     xSemaphoreTake(tca9555_mutex, portMAX_DELAY);
     uint8_t write_data[2] = {reg_addr, data};
     PCA9546_SelectChannel(TCA9555_I2C_CHANNEL);
+    xSemaphoreTake(i2c_bus1_mutex, portMAX_DELAY);
     i2c_master_transmit(TCA9555_dev_handle, write_data, 2, -1);
+    xSemaphoreGive(i2c_bus1_mutex);
     PCA9546_DeselectChannel(TCA9555_I2C_CHANNEL);
     xSemaphoreGive(tca9555_mutex);
 }
@@ -66,7 +68,9 @@ void TCA9555_ReadReg(uint8_t reg_addr, uint8_t *data)
 {
     xSemaphoreTake(tca9555_mutex, portMAX_DELAY);
     PCA9546_SelectChannel(TCA9555_I2C_CHANNEL);
+    xSemaphoreTake(i2c_bus1_mutex, portMAX_DELAY);
     i2c_master_transmit_receive(TCA9555_dev_handle, &reg_addr, 1, data, 1, -1);
+    xSemaphoreGive(i2c_bus1_mutex);
     PCA9546_DeselectChannel(TCA9555_I2C_CHANNEL);
     xSemaphoreGive(tca9555_mutex);
 }
@@ -255,6 +259,7 @@ void checkIO(void)
         count1=0;
         uint8_t buf[2] = {0x2C, 0x2D};
         FuelGauge_ReadReg(buf, buf);
+        vTaskDelay(pdMS_TO_TICKS(500));
         ESP_LOGI(TAG, "Fuel Gauge: %02X %02X", buf[0], buf[1]); 
         if(lvgl_lock())
         {

@@ -6,6 +6,9 @@
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
 
 #define I2C_PORT_0 I2C_NUM_0
 #define I2C_PORT_1 I2C_NUM_1
@@ -18,6 +21,7 @@
 
 extern i2c_master_bus_handle_t i2c_bus0_handle;
 extern i2c_master_bus_handle_t i2c_bus1_handle;
+extern SemaphoreHandle_t i2c_bus1_mutex;
 
 
 void I2C_Init();

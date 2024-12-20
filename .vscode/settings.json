@@ -122,7 +122,8 @@
         "callbacks.h": "c",
         "protocal.h": "c",
         "string.h": "c",
-        "tca9555.h": "c"
+        "tca9555.h": "c",
+        "nvs_flash.h": "c"
     },
     "idf.flashType": "JTAG",
     "idf.portWin": "COM14",

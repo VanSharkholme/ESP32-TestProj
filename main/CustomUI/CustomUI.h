@@ -64,8 +64,8 @@ LV_FONT_DECLARE(AliPuHui_70)
 
 #define UI_CURRENT_ARC_LINE_WIDTH 6
 
-#define UI_SCHEME_PAGE_NUM 3
-#define UI_SCHEME_SET_NUM_PER_PAGE 6
+#define UI_PLAN_PAGE_NUM_MAX 3
+#define UI_PLAN_NUM_PER_PAGE 6
 
 #define BT_SETTING_PWD "123456"
 #define CALIB_PWD "654321"
@@ -134,6 +134,7 @@ extern SchemeSet schemeSet10;
 extern SchemeSet schemeSet11;
 extern SchemeSet schemeSet12;
 
+extern uint8_t valid_page_num;
 extern uint8_t current_page_num;
 
 void clear_all_channels();

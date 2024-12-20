@@ -45,7 +45,9 @@ void FuelGauge_WriteReg(uint8_t reg_addr[2], uint8_t* data)
 {
     uint8_t tx_data[10] = {reg_addr[0], reg_addr[1], data[0], data[1]};
     PCA9546_SelectChannel(FUEL_GAUGE_I2C_CHANNEL);
+    xSemaphoreTake(i2c_bus1_mutex, portMAX_DELAY);
     i2c_master_transmit(FuelGauge_dev_handle, tx_data, 4, -1);
+    xSemaphoreGive(i2c_bus1_mutex);
     PCA9546_DeselectChannel(FUEL_GAUGE_I2C_CHANNEL);
 }
 

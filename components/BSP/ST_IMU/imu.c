@@ -53,7 +53,9 @@ void IMU_Init()
 void IMU_read_reg(uint8_t reg_addr, uint8_t *data, uint8_t len)
 {
     PCA9546_SelectChannel(IMU_I2C_CHANNEL);
+    xSemaphoreTake(i2c_bus1_mutex, portMAX_DELAY);
     i2c_master_transmit_receive(IMU_dev_handle, &reg_addr, 1, data, len, -1);
+    xSemaphoreGive(i2c_bus1_mutex);
     PCA9546_DeselectChannel(IMU_I2C_CHANNEL);
 }
 
@@ -67,7 +69,9 @@ void IMU_write_reg(uint8_t reg_addr, uint8_t *data, uint8_t len)
         tx_data[i+1] = data[i];
     }
     PCA9546_SelectChannel(IMU_I2C_CHANNEL);
+    xSemaphoreTake(i2c_bus1_mutex, portMAX_DELAY);
     i2c_master_transmit(IMU_dev_handle, tx_data, len+1, -1);
+    xSemaphoreGive(i2c_bus1_mutex);
     PCA9546_DeselectChannel(IMU_I2C_CHANNEL);
 }
 

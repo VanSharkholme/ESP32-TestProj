@@ -3,6 +3,7 @@
 i2c_master_bus_handle_t i2c_bus0_handle;
 i2c_master_bus_handle_t i2c_bus1_handle;
 
+SemaphoreHandle_t i2c_bus1_mutex;
 
 void I2C_Init(void)
 {
@@ -24,6 +25,6 @@ void I2C_Init(void)
         .flags.enable_internal_pullup = true,
     };
     ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst1_config, &i2c_bus1_handle));
-
+    i2c_bus1_mutex = xSemaphoreCreateMutex();
 
 }

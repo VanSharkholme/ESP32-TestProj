@@ -100,78 +100,74 @@ void print_plans(Plan *plans)
 
 void reset_schemeset()
 {
-    Plan plans[MAX_PLAN_NUM] = {0};
-    plans[0].id = 1,
-    strcpy(plans[0].name, "脑卒中后肩痛");
-    plans[0].name_len = 19,
-    plans[0].current_mA = 10,
-    plans[0].total_time_min = 30,
-    plans[0].scheme_type = SCHEME_TYPE_TENS,
-    plans[0].pulse_width = 200,
-    plans[0].freq_min = 100,
-    plans[0].freq_max = 100,
-    plans[0].freq_type = FREQ_TYPE_FIXED,
-    plans[0].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE,
+    saved_plans[0].id = 1,
+    strcpy(saved_plans[0].name, "脑卒中后肩痛");
+    saved_plans[0].name_len = 19,
+    saved_plans[0].current_mA = 10,
+    saved_plans[0].total_time_min = 30,
+    saved_plans[0].scheme_type = SCHEME_TYPE_TENS,
+    saved_plans[0].pulse_width = 200,
+    saved_plans[0].freq_min = 100,
+    saved_plans[0].freq_max = 100,
+    saved_plans[0].freq_type = FREQ_TYPE_FIXED,
+    saved_plans[0].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE,
 
-    plans[1].id = 2;
-    strcpy(plans[1].name, "带状疱疹神经痛");
-    plans[1].name_len = 22;
-    plans[1].current_mA = 10;
-    plans[1].total_time_min = 30;
-    plans[1].scheme_type = SCHEME_TYPE_TENS;
-    plans[1].pulse_width = 250;
-    plans[1].freq_min = 80;
-    plans[1].freq_max = 80;
-    plans[1].freq_type = FREQ_TYPE_FIXED;
-    plans[1].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE;
+    saved_plans[1].id = 2;
+    strcpy(saved_plans[1].name, "带状疱疹神经痛");
+    saved_plans[1].name_len = 22;
+    saved_plans[1].current_mA = 10;
+    saved_plans[1].total_time_min = 30;
+    saved_plans[1].scheme_type = SCHEME_TYPE_TENS;
+    saved_plans[1].pulse_width = 250;
+    saved_plans[1].freq_min = 80;
+    saved_plans[1].freq_max = 80;
+    saved_plans[1].freq_type = FREQ_TYPE_FIXED;
+    saved_plans[1].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE;
 
-    plans[2].id = 3;
-    strcpy(plans[2].name, "脑卒中上肢功能障碍");
-    plans[2].name_len = 28;
-    plans[2].current_mA = 10;
-    plans[2].total_time_min = 30;
-    plans[2].scheme_type = SCHEME_TYPE_NMES;
-    plans[2].pulse_width = 200;
-    plans[2].freq_min = 35;
-    plans[2].freq_max = 35;
-    plans[2].freq_type = FREQ_TYPE_FIXED;
-    plans[2].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE;
-    plans[2].wave_rise = 0;
-    plans[2].work_time = 5;
-    plans[2].wave_fall = 0;
-    plans[2].break_time = 20;
+    saved_plans[2].id = 3;
+    strcpy(saved_plans[2].name, "脑卒中上肢功能障碍");
+    saved_plans[2].name_len = 28;
+    saved_plans[2].current_mA = 10;
+    saved_plans[2].total_time_min = 30;
+    saved_plans[2].scheme_type = SCHEME_TYPE_NMES;
+    saved_plans[2].pulse_width = 200;
+    saved_plans[2].freq_min = 35;
+    saved_plans[2].freq_max = 35;
+    saved_plans[2].freq_type = FREQ_TYPE_FIXED;
+    saved_plans[2].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE;
+    saved_plans[2].wave_rise = 0;
+    saved_plans[2].work_time = 5;
+    saved_plans[2].wave_fall = 0;
+    saved_plans[2].break_time = 20;
 
-    plans[3].id = 4;
-    strcpy(plans[3].name, "脑梗死吞咽训练");
-    plans[3].name_len = 22;
-    plans[3].current_mA = 10;
-    plans[3].total_time_min = 20;
-    plans[3].scheme_type = SCHEME_TYPE_NMES;
-    plans[3].pulse_width = 300;
-    plans[3].freq_min = 40;
-    plans[3].freq_max = 40;
-    plans[3].freq_type = FREQ_TYPE_FIXED;
-    plans[3].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE;
+    saved_plans[3].id = 4;
+    strcpy(saved_plans[3].name, "脑梗死吞咽训练");
+    saved_plans[3].name_len = 22;
+    saved_plans[3].current_mA = 10;
+    saved_plans[3].total_time_min = 20;
+    saved_plans[3].scheme_type = SCHEME_TYPE_NMES;
+    saved_plans[3].pulse_width = 300;
+    saved_plans[3].freq_min = 40;
+    saved_plans[3].freq_max = 40;
+    saved_plans[3].freq_type = FREQ_TYPE_FIXED;
+    saved_plans[3].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE;
 
-    plans[4].id = 5;
-    strcpy(plans[4].name, "急迫性尿失禁");
-    plans[4].name_len = 19;
-    plans[4].current_mA = 10;
-    plans[4].total_time_min = 20;
-    plans[4].scheme_type = SCHEME_TYPE_TENS;
-    plans[4].pulse_width = 300;
-    plans[4].freq_min = 10;
-    plans[4].freq_max = 10;
-    plans[4].freq_type = FREQ_TYPE_FIXED;
-    plans[4].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE;
-    plans[4].wave_rise = 0;
-    plans[4].work_time = 10;
-    plans[4].wave_fall = 0;
-    plans[4].break_time = 15;
-
-    // print_plans(plans);
-    nvs_save_plans(plans);
-
+    saved_plans[4].id = 5;
+    strcpy(saved_plans[4].name, "急迫性尿失禁");
+    saved_plans[4].name_len = 19;
+    saved_plans[4].current_mA = 10;
+    saved_plans[4].total_time_min = 20;
+    saved_plans[4].scheme_type = SCHEME_TYPE_TENS;
+    saved_plans[4].pulse_width = 300;
+    saved_plans[4].freq_min = 10;
+    saved_plans[4].freq_max = 10;
+    saved_plans[4].freq_type = FREQ_TYPE_FIXED;
+    saved_plans[4].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE;
+    saved_plans[4].wave_rise = 0;
+    saved_plans[4].work_time = 10;
+    saved_plans[4].wave_fall = 0;
+    saved_plans[4].break_time = 15;
+    
 }
 
 void init_plans()

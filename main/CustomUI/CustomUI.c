@@ -19,10 +19,11 @@ lv_obj_t *lv_channel_b;
 lv_obj_t *lv_channel_c;
 lv_obj_t *lv_channel_d;
 
-SchemePage schemePages[UI_SCHEME_PAGE_NUM];
-pSchemeSet page1[UI_SCHEME_SET_NUM_PER_PAGE];
-pSchemeSet page2[UI_SCHEME_SET_NUM_PER_PAGE];
-pSchemeSet page3[UI_SCHEME_SET_NUM_PER_PAGE];
+PlanPage schemePages[UI_PLAN_PAGE_NUM_MAX];
+pPlan page1[UI_PLAN_NUM_PER_PAGE];
+pPlan page2[UI_PLAN_NUM_PER_PAGE];
+pPlan page3[UI_PLAN_NUM_PER_PAGE];
+uint8_t valid_page_num = 0;
 uint8_t current_page_num = 0;
 
 static uint8_t calib_cnt = 0;
@@ -201,7 +202,7 @@ void check_last_channel_finished(void)
     {
         lv_obj_t *btn = lv_obj_get_child(main_scr, 3);
         bool *is_stimulation_running = (bool *) lv_obj_get_user_data(btn);
-        *is_stimulation_running = !(*is_stimulation_running);
+        *is_stimulation_running = false;
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Green_fit, NULL);
         statework.st_bit.StRun = 0;
     }    
@@ -258,9 +259,11 @@ void set_channel_state(lv_obj_t *channel, UI_ChannelState state) {
         if (state == UI_CHANNEL_STATE_DISABLED) {
             if (ch->prev_state == UI_CHANNEL_STATE_ADDED)
             {
+                lv_obj_t *timer_label = lv_obj_get_child(lv_obj_get_child(channel, 1), 0);
                 lv_obj_t *current_adjust_container = lv_obj_get_child(channel, 2);
                 lv_obj_t *add_btn = lv_obj_get_child(current_adjust_container, 0);
                 lv_obj_t *sub_btn = lv_obj_get_child(current_adjust_container, 1);
+                lv_obj_clear_flag(timer_label, LV_OBJ_FLAG_CLICKABLE);
                 lv_obj_clear_flag(add_btn, LV_OBJ_FLAG_CLICKABLE);
                 lv_obj_clear_flag(sub_btn, LV_OBJ_FLAG_CLICKABLE);
             }
@@ -316,8 +319,10 @@ void set_channel_state(lv_obj_t *channel, UI_ChannelState state) {
             if (ch->prev_state == UI_CHANNEL_STATE_DISABLED)
             {
                 lv_obj_t *current_adjust_container = lv_obj_get_child(channel, 2);
+                lv_obj_t *timer_label = lv_obj_get_child(lv_obj_get_child(channel, 1), 0);
                 lv_obj_t *add_btn = lv_obj_get_child(current_adjust_container, 0);
                 lv_obj_t *sub_btn = lv_obj_get_child(current_adjust_container, 1);
+                lv_obj_add_flag(timer_label, LV_OBJ_FLAG_CLICKABLE);
                 lv_obj_add_flag(add_btn, LV_OBJ_FLAG_CLICKABLE);
                 lv_obj_add_flag(sub_btn, LV_OBJ_FLAG_CLICKABLE);
                 return;
@@ -367,7 +372,7 @@ void set_channel_state(lv_obj_t *channel, UI_ChannelState state) {
             lv_obj_t *add_btn = lv_imgbtn_create(adjust_container);
             lv_imgbtn_set_src(add_btn, LV_IMGBTN_STATE_RELEASED, NULL, &AddButton_White_120_fit, NULL);
             lv_obj_set_size(add_btn, AddButton_White_120_fit.header.w, AddButton_White_120_fit.header.h);
-            lv_obj_align(add_btn, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+            lv_obj_align(add_btn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
             lv_obj_add_event_cb(add_btn, AddCurrentBtnCallback, LV_EVENT_CLICKED, NULL);
             addCallbackforImgBtn(add_btn);
 
@@ -376,7 +381,7 @@ void set_channel_state(lv_obj_t *channel, UI_ChannelState state) {
             lv_obj_t *sub_btn = lv_imgbtn_create(adjust_container);
             lv_imgbtn_set_src(sub_btn, LV_IMGBTN_STATE_RELEASED, NULL, &SubtractButton_White_120_fit, NULL);
             lv_obj_set_size(sub_btn, SubtractButton_White_120_fit.header.w, SubtractButton_White_120_fit.header.h);
-            lv_obj_align(sub_btn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+            lv_obj_align(sub_btn, LV_ALIGN_BOTTOM_LEFT, 0, 0);
             lv_obj_add_event_cb(sub_btn, SubCurrentBtnCallback, LV_EVENT_CLICKED, NULL);
             addCallbackforImgBtn(sub_btn);
             //    lv_obj_set_grid_cell(sub_btn, LV_GRID_ALIGN_SPACE_BETWEEN, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
@@ -685,74 +690,63 @@ lv_obj_t *create_main_scr() {
     return scr;
 }
 
-lv_obj_t *create_scheme_set(lv_obj_t *parent, SchemeSet *schemeSet) {
+lv_obj_t *create_plan_option(lv_obj_t *parent, Plan *plan) {
     //----- Scheme Dropdown -----
-    lv_obj_t *scheme_set_dropdown = lv_dropdown_create(parent);
-    lv_obj_set_size(scheme_set_dropdown, LV_PCT(100), 80);
-    lv_obj_align(scheme_set_dropdown, LV_ALIGN_CENTER, 0, 0);
-    lv_dropdown_set_text(scheme_set_dropdown, "");
-    lv_dropdown_set_symbol(scheme_set_dropdown, NULL);
-    lv_dropdown_clear_options(scheme_set_dropdown);
-    lv_obj_set_flex_flow(scheme_set_dropdown, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_flex_align(scheme_set_dropdown, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_add_event_cb(scheme_set_dropdown, SchemeDropdownCallback, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_set_user_data(scheme_set_dropdown, schemeSet);
+    lv_obj_t *plan_option = lv_btn_create(parent);
+    lv_obj_set_size(plan_option, LV_PCT(100), 80);
+    lv_obj_set_style_bg_color(plan_option, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_align(plan_option, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_flex_flow(plan_option, LV_FLEX_FLOW_ROW_WRAP);
+    lv_obj_set_flex_align(plan_option, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_add_event_cb(plan_option, PlanOptionCallback, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_user_data(plan_option, plan);
 
     //----- Scheme Tag Bullet Point -----
-    lv_obj_t *title_bullet_point = lv_label_create(scheme_set_dropdown);
+    lv_obj_t *title_bullet_point = lv_label_create(plan_option);
     lv_label_set_text(title_bullet_point, "•");
     lv_obj_set_style_text_font(title_bullet_point, &AliPuHui_40, 0);
     lv_obj_set_style_text_color(title_bullet_point, lv_color_hex(0x8c9bbc), 0);
 
     //----- Scheme Tag -----
-    lv_obj_t *scheme_tag = lv_label_create(scheme_set_dropdown);
-    lv_label_set_text(scheme_tag, schemeSet->name);
-    lv_obj_set_style_text_font(scheme_tag, &AliPuHui_30, 0);
+    lv_obj_t *scheme_tag = lv_label_create(plan_option);
+    lv_label_set_text(scheme_tag, plan->name);
+    lv_obj_set_style_text_font(scheme_tag, &AliPuHui_24, 0);
+    lv_obj_set_style_text_color(scheme_tag, lv_color_hex(0x303030), 0);
 
-    // ----- Scheme Dropdown List -----
-    char option_str[256] = {0};
-    lv_obj_t *scheme_list = lv_dropdown_get_list(scheme_set_dropdown);
-    lv_obj_set_style_text_font(scheme_list, &AliPuHui_20, 0);
-    for (int i = 0; i < schemeSet->plan_num; i++) {
-//        sprintf(option_str, "%s\n", schemeSet->plans[i].name);
-        lv_dropdown_add_option(scheme_set_dropdown, schemeSet->plans[i]->name, i);
-    }
-
-
-    return scheme_set_dropdown;
+    return plan_option;
 }
 
 void init_scheme_pages()
 {
-    page1[0] = &NMES;
-    page1[1] = &TENS;
-    page1[2] = &MNS;
-    page1[3] = &TNS;
-    page1[4] = &Others;
-    page1[5] = &test_schemeset;
+    valid_page_num = 1;
+    uint8_t current_page_plan_index = 0;
+    schemePages[0] = page1;
+    schemePages[1] = page2;
+    schemePages[2] = page3;
 
-    page2[0] = &test_schemeset;
-    page2[1] = &test_schemeset;
-    page2[2] = &test_schemeset;
-    page2[3] = &test_schemeset;
-    page2[4] = &test_schemeset;
-    page2[5] = &test_schemeset;
+    for (uint8_t i = 0; i < MAX_PLAN_NUM; i++)
+    {
+        if(saved_plans[i].id > 0 && saved_plans[i].id <= MAX_PLAN_NUM)
+        {
+            schemePages[valid_page_num - 1][current_page_plan_index++] = &saved_plans[i];
+            if (current_page_plan_index == UI_PLAN_NUM_PER_PAGE)
+            {
+                current_page_plan_index = 0;
+                valid_page_num++;
+            }
+        }
+    }
 
-    page3[0] = &test_schemeset;
-    page3[1] = &test_schemeset;
-    page3[2] = &test_schemeset;
-    page3[3] = &test_schemeset;
-    page3[4] = &test_schemeset;
 }
 
 void set_scheme_set_page(lv_obj_t *container, uint8_t page)
 {
-    page = page % 3;
+    page = page % valid_page_num;
     lv_obj_clean(container);
-    SchemePage current_page = schemePages[page];
-    for (uint8_t i = 0; i < UI_SCHEME_SET_NUM_PER_PAGE; ++i) {
+    PlanPage current_page = schemePages[page];
+    for (uint8_t i = 0; i < UI_PLAN_NUM_PER_PAGE; ++i) {
         if (current_page[i])
-            create_scheme_set(container, current_page[i]);
+            create_plan_option(container, current_page[i]);
     }
 
 }
@@ -787,9 +781,6 @@ lv_obj_t *create_scheme_scr() {
 
     init_scheme_pages();
 
-    schemePages[0] = page1;
-    schemePages[1] = page2;
-    schemePages[2] = page3;
     set_scheme_set_page(scheme_set_list_container, current_page_num);
 
     //----- Page Indicator Container -----
@@ -816,7 +807,7 @@ lv_obj_t *create_scheme_scr() {
 
     //----- Current Page Label -----
     lv_obj_t *current_page_label = lv_label_create(page_indicator_container);
-    lv_label_set_text_fmt(current_page_label, "第%d:%d页", current_page_num + 1, UI_SCHEME_PAGE_NUM);
+    lv_label_set_text_fmt(current_page_label, "第%d:%d页", current_page_num + 1, valid_page_num);
     lv_obj_set_style_text_font(current_page_label, &AliPuHui_20, 0);
 
     //----- Next Page Button -----

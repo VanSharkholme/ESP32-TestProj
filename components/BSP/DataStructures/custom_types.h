@@ -52,7 +52,9 @@ typedef struct {
 } SchemeSet;
 
 typedef SchemeSet * pSchemeSet;
-typedef pSchemeSet * SchemePage;
+typedef Plan * pPlan;
+typedef pPlan * PlanPage;
+
 
 
 

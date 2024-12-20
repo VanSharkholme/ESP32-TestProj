@@ -23,7 +23,7 @@ esp_attr_control_t gatts_attr_control = {
 static uint8_t char_value_b[20] = {0x11, 0x22, 0x33, 0x44};
 
 static esp_attr_value_t gatts_char_val_b = {
-    .attr_max_len = sizeof(char_value_b), // 特征值的最大长度
+    .attr_max_len = 60, // 特征值的最大长度
     .attr_len = sizeof(char_value_b),     // 当前特征值长度
     .attr_value = char_value_b,           // 特征值的默认数据
 };

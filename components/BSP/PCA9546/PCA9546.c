@@ -39,21 +39,27 @@ void PCA9546_Init()
 void PCA9546_SelectChannel(uint8_t channel)
 {
     uint8_t data;
+    xSemaphoreTake(i2c_bus1_mutex, portMAX_DELAY);
     i2c_master_receive(PCA9546_dev_handle, &data, 1, -1);
     data |= 1 << channel;
     i2c_master_transmit(PCA9546_dev_handle, &data, 1, -1);
+    xSemaphoreGive(i2c_bus1_mutex);
 }
 
 void PCA9546_DeselectChannel(uint8_t channel)
 {
     uint8_t data = 0;
+    xSemaphoreTake(i2c_bus1_mutex, portMAX_DELAY);
     i2c_master_receive(PCA9546_dev_handle, &data, 1, -1);
     data &= ~(1 << channel);
     i2c_master_transmit(PCA9546_dev_handle, &data, 1, -1);
+    xSemaphoreGive(i2c_bus1_mutex);
 }
 
 void PCA9546_EnableAllChannels()
 {
     uint8_t data = 0xFF;
+    xSemaphoreTake(i2c_bus1_mutex, portMAX_DELAY);
     i2c_master_transmit(PCA9546_dev_handle, &data, 1, -1);
+    xSemaphoreGive(i2c_bus1_mutex);
 }
