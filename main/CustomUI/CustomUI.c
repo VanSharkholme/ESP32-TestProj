@@ -90,7 +90,7 @@ lv_obj_t *create_current_warning_modal(lv_obj_t *current_container)
     lv_obj_center(modal_content);
 
     lv_obj_t *modal_content_label = lv_label_create(modal_content);
-    lv_label_set_text(modal_content_label, "电流已超过50\n是否继续上调？");
+    lv_label_set_text_fmt(modal_content_label, "电流已超过%d\n是否继续上调？", UI_WARNING_CURRENT_LIMIT);
     lv_obj_set_style_text_color(modal_content_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(modal_content_label, &AliPuHui_24, 0);
     lv_obj_center(modal_content_label);
@@ -143,7 +143,7 @@ void refresh_channel_current(lv_obj_t *current_container, int8_t difference)
     int8_t current = ui_ch->pPlan->current_mA;
     if (current + difference < 0)
         current = 0;
-    else if (current + difference == 51 && difference > 0)
+    else if (current + difference == (UI_WARNING_CURRENT_LIMIT + 1) && difference > 0)
     {
         create_current_warning_modal(current_container);
     }

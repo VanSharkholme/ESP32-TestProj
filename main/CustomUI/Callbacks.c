@@ -663,7 +663,7 @@ void CurrentWarningModalConfirmCallback(lv_event_t *event)
 {
     lv_obj_t *obj = lv_event_get_user_data(event);
     lv_obj_t *current_container = lv_obj_get_user_data(obj);
-    set_channel_current_by_force(current_container, 51);
+    set_channel_current_by_force(current_container, UI_WARNING_CURRENT_LIMIT + 1);
     lv_obj_del_async(obj);
 
 }
