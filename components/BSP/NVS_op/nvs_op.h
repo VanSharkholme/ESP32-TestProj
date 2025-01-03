@@ -5,7 +5,7 @@
 #include "rgb_lcd.h"
 #include "datastructures.h"
 
-#define NVS_FORCE_RESET_PLANS 1
+#define NVS_FORCE_RESET_PLANS 0
 
 void nvs_op_init();
 void nvs_test();
