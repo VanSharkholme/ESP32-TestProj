@@ -581,7 +581,7 @@ void StimulationStartBtnCallback(lv_event_t *event)
     bool *is_stimulation_running = (bool *)lv_obj_get_user_data(btn);
     if (*is_stimulation_running == false) {
         uint8_t impedance_flag = adc_check_impedance();
-        impedance_flag = 0;
+        // impedance_flag = 0;
         *is_stimulation_running = !(*is_stimulation_running);
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &PauseButton_fit, NULL);
         lv_obj_t *stimulation_start_label = lv_obj_get_child(main_scr, 4);
