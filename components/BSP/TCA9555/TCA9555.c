@@ -2,9 +2,11 @@
 //#include "CustomUI.h"
 #include "FuelGauge.h"
 
-void set_battery_level(uint8_t soc);
+void set_battery_level();
 bool lvgl_lock(void);
 void lvgl_unlock(void);
+void load_charging_scr();
+void exit_charging_scr();
 
 i2c_master_dev_handle_t TCA9555_dev_handle = NULL;
 PIN_IO pin_io_old,pin_io;
@@ -205,10 +207,25 @@ void checkIO(void)
         //pin_io.pin_bit.pin_chr_sta_ind
         ESP_LOGI(TAG, "XL9555_PIN_CHR_STA_IND  %d ",pin_io.pin_bit.pin_chr_sta_ind);
         pin_io_old.pin_bit.pin_chr_sta_ind = pin_io.pin_bit.pin_chr_sta_ind;
-         if(pin_io.pin_bit.pin_chr_sta_ind == 0)
-             statework.st_bit.StChrg = 1;
-         else    
-             statework.st_bit.StChrg = 0;
+        if(pin_io.pin_bit.pin_chr_sta_ind == 0)
+        {
+            statework.st_bit.StChrg = 1;
+            if (lvgl_lock())
+            {
+                load_charging_scr();
+                lvgl_unlock();
+            }
+        }
+        else
+        {
+            statework.st_bit.StChrg = 0;
+            if (lvgl_lock())
+            {
+                exit_charging_scr();
+                lvgl_unlock();
+            }
+            
+        }
     }
     if(check_pin(TCA9555_PIN_BL_ADJ))
     {
@@ -254,21 +271,27 @@ void checkIO(void)
 
     //电池电量
     static uint16_t count1 = 0;
-    if(count1++>50)
+    if(count1++>30)
     {
         count1=0;
-        uint8_t buf[2] = {0x2C, 0x2D};
-        FuelGauge_ReadReg(buf, buf);
-        vTaskDelay(pdMS_TO_TICKS(500));
-        ESP_LOGI(TAG, "Fuel Gauge: %02X %02X", buf[0], buf[1]); 
+        // uint8_t buf[2] = {0x2C, 0x2D};
+        // FuelGauge_ReadReg(buf, buf);
+        // ESP_LOGI(TAG, "Fuel Gauge: %02X %02X", buf[0], buf[1]); 
+        // if (buf[1] != 0)
+        // {
+        //     return;
+        // }
+        FuelGauge_Get_SOC();
+        
         if(lvgl_lock())
         {
-            set_battery_level(buf[0]);
+            // set_battery_level(buf[0]);
+            set_battery_level();
             lvgl_unlock();
         }
-        if(buf[0] > 90)
+        if(g_battery_soc > 90)
             statework.st_bit.StChrgOK = 1;
-        else if(buf[0] < 20)
+        else if(g_battery_soc < 20)
             statework.st_bit.StPowerLow = 1;
         else
         {

@@ -1,5 +1,9 @@
 #include "bluetooth.h"
 
+bool lvgl_lock(void);
+void lvgl_unlock(void);
+void set_bluetooth_status(bool is_connected);
+
 #define ADV_CONFIG_FLAG (1 << 0)
 #define SCAN_RSP_CONFIG_FLAG (1 << 1)
 #define GATTS_HANDLE_NUM 12
@@ -227,6 +231,12 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
             ESP_LOGI(BT_TAG, "Device connected, conn_id %d", param->connect.conn_id);
             conn_id = param->connect.conn_id;
             bluetooth_connected = true;
+            if (lvgl_lock())
+            {
+                set_bluetooth_status(true);
+                lvgl_unlock();
+            }
+            
         }
         break;
         case ESP_GATTS_DISCONNECT_EVT: {
@@ -234,6 +244,11 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
             conn_id = 0;
             bluetooth_connected = false;
             esp_ble_gap_start_advertising(&adv_params);
+            if (lvgl_lock())
+            {
+                set_bluetooth_status(false);
+                lvgl_unlock();
+            }
         }
         break;
         case ESP_GATTS_WRITE_EVT: {

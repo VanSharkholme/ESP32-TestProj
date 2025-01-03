@@ -17,13 +17,15 @@
 #define FUEL_GAUGE_SAFETY_STATUS_OVP_MASK 0b00000010
 #define FUEL_GAUGE_SAFETY_STATUS_UVP_MASK 0b00000001
 
+extern uint8_t g_battery_soc;
+
 void FuelGauge_Init(void);
 void FuelGauge_WriteReg(uint8_t reg_addr[2], uint8_t* data);
 void FuelGauge_ReadReg(uint8_t reg_addr[2], uint8_t *data);
 void FuelGauge_WriteCtrlReg(uint8_t sub_cmd[2], uint8_t* data);
 void FuelGauge_ReadCtrlReg(uint8_t sub_cmd[2], uint8_t *data);
 uint16_t FuelGauge_Device_Type();
-uint8_t FuelGauge_Get_SOC();
+void FuelGauge_Get_SOC();
 uint8_t FuelGauge_Get_Safety_Status();
 bool FuelGauge_is_Charging();
 

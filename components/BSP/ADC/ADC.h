@@ -29,6 +29,6 @@ void adc_calibration_deinit(adc_cali_handle_t handle);
 void adc_read_convert(int *voltage);
 void adc_continuous_read(uint32_t sample_freq, int adc_res_buffer[], uint32_t buffer_size);
 float adc_impedance_measure();
-bool adc_check_impedance();
+uint8_t adc_check_impedance();
 
 #endif // !ADC_H

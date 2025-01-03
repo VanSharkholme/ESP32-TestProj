@@ -16,6 +16,7 @@
 #include "datastructures.h"
 #include "TCA9555.h"
 #include "timer.h"
+#include "FuelGauge.h"
 
 LV_IMG_DECLARE(AddButton_Green_fit)
 LV_IMG_DECLARE(AddButton_White_120_fit)
@@ -52,6 +53,13 @@ LV_IMG_DECLARE(WarningIcon_fit)
 LV_IMG_DECLARE(BackButton_fit)
 LV_IMG_DECLARE(BatteryBar_fit)
 LV_IMG_DECLARE(EmptyBattery_fit)
+LV_IMG_DECLARE(Info_Icon_Detail_fit)
+LV_IMG_DECLARE(Info_Icon_Freq_fit)
+LV_IMG_DECLARE(Info_Icon_Wavetype_fit)
+LV_IMG_DECLARE(Info_Icon_Width_fit)
+LV_IMG_DECLARE(Bluetooth_Disconnect_fit)
+LV_IMG_DECLARE(NextPageBtn_fit)
+LV_IMG_DECLARE(PrevPageBtn_fit)
 
 LV_FONT_DECLARE(AliPuHui_20)
 LV_FONT_DECLARE(AliPuHui_24)
@@ -64,7 +72,7 @@ LV_FONT_DECLARE(AliPuHui_70)
 
 #define UI_CURRENT_ARC_LINE_WIDTH 6
 
-#define UI_PLAN_PAGE_NUM_MAX 3
+#define UI_PLAN_PAGE_NUM_MAX (MAX_PLAN_NUM / UI_PLAN_NUM_PER_PAGE + 1)
 #define UI_PLAN_NUM_PER_PAGE 6
 #define UI_WARNING_CURRENT_LIMIT 60
 
@@ -122,32 +130,39 @@ typedef enum {
 extern lv_obj_t *main_scr;
 extern lv_obj_t *scheme_scr;
 extern lv_obj_t *calib_scr;
-extern SchemeSet schemeSet1;
-extern SchemeSet schemeSet2;
-extern SchemeSet schemeSet3;
-extern SchemeSet schemeSet4;
-extern SchemeSet schemeSet5;
-extern SchemeSet schemeSet6;
-extern SchemeSet schemeSet7;
-extern SchemeSet schemeSet8;
-extern SchemeSet schemeSet9;
-extern SchemeSet schemeSet10;
-extern SchemeSet schemeSet11;
-extern SchemeSet schemeSet12;
+// extern SchemeSet schemeSet1;
+// extern SchemeSet schemeSet2;
+// extern SchemeSet schemeSet3;
+// extern SchemeSet schemeSet4;
+// extern SchemeSet schemeSet5;
+// extern SchemeSet schemeSet6;
+// extern SchemeSet schemeSet7;
+// extern SchemeSet schemeSet8;
+// extern SchemeSet schemeSet9;
+// extern SchemeSet schemeSet10;
+// extern SchemeSet schemeSet11;
+// extern SchemeSet schemeSet12;
 
 extern uint8_t valid_page_num;
 extern uint8_t current_page_num;
 
 void clear_all_channels();
-void set_channel_state(lv_obj_t *channel, UI_ChannelState state);
-void set_scheme_set_page(lv_obj_t *container, uint8_t page);
-void refresh_channel_current(lv_obj_t *current_container, int8_t difference);
-void set_channel_current_by_force(lv_obj_t *channel, uint8_t current);
+void set_channel_state(lv_obj_t *channel, UI_ChannelState state, bool is_force_refresh);
+void set_scheme_set_page(uint8_t page);
+void refresh_channel_current(lv_obj_t *in_channel, int8_t difference, bool is_force_refresh);
+void set_channel_current_by_force(lv_obj_t *in_channel, uint8_t current);
 lv_obj_t *get_channel_by_index(uint8_t index);
+uint8_t get_channel_needing_modifying();
+uint8_t get_channel_with_same_plan(uint8_t plan_id);
+void set_channel_plan(uint8_t index, Plan *plan, bool is_force_refresh);
+uint8_t find_spare_channel(uint8_t *indicator);
+lv_obj_t *create_warning_modal(char *msg);
 void set_channel_timer_state(lv_obj_t *current_container, UI_ChannelTimerState state);
-void set_battery_level(uint8_t soc);
+void update_scheme_pages();
+void set_battery_level();
 void load_charging_scr();
 void exit_charging_scr();
+void update_start_btn_status();
 lv_obj_t *create_calib_scr();
 void CustomUI();
 

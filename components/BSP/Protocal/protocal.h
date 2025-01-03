@@ -12,6 +12,7 @@
 #include "bluetooth.h"
 #include "uart_ens.h"
 #include "custom_types.h"
+#include "datastructures.h"
 
 #define PROTOCAL_CMD_FIRMWARE_UPGRADE 0x01
 #define PROTOCAL_CMD_FIRMWARE_DATA 0x02

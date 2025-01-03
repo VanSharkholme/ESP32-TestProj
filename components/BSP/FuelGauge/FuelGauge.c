@@ -1,6 +1,7 @@
 #include "FuelGauge.h"
 
 i2c_master_dev_handle_t FuelGauge_dev_handle = NULL;
+uint8_t g_battery_soc = 0;
 
 void FuelGauge_Dev_Init(i2c_master_bus_handle_t bus_handle)
 {
@@ -14,6 +15,7 @@ void FuelGauge_Dev_Init(i2c_master_bus_handle_t bus_handle)
        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
        .device_address = FUEL_GAUGE_I2C_ADDR,
        .scl_speed_hz = 100000,
+       .scl_wait_us = 200000, // clock stretching timeout
     };
     PCA9546_SelectChannel(FUEL_GAUGE_I2C_CHANNEL);
     if(ESP_OK == i2c_master_probe(bus_handle, FUEL_GAUGE_I2C_ADDR, -1))
@@ -54,7 +56,7 @@ void FuelGauge_WriteReg(uint8_t reg_addr[2], uint8_t* data)
 void FuelGauge_ReadReg(uint8_t reg_addr[2], uint8_t *data)
 {
     PCA9546_SelectChannel(FUEL_GAUGE_I2C_CHANNEL);
-    i2c_master_transmit_receive(FuelGauge_dev_handle, reg_addr, 1, data, 2, -1);
+    i2c_master_transmit_receive(FuelGauge_dev_handle, reg_addr, 1, data, 2, 500);
     PCA9546_DeselectChannel(FUEL_GAUGE_I2C_CHANNEL);
 }
 
@@ -87,12 +89,14 @@ uint16_t FuelGauge_Device_Type()
     return (data[0] << 8) | data[1];
 }
 
-uint8_t FuelGauge_Get_SOC()
+void FuelGauge_Get_SOC()
 {
     uint8_t data[2] = {0x2C, 0x2D};
     FuelGauge_ReadReg(data, data);
-    vTaskDelay(pdMS_TO_TICKS(500));
-    return data[0];
+    if (data[1] == 0)
+    {
+        g_battery_soc = data[0];
+    }
 }
 
 uint8_t FuelGauge_Get_Safety_Status()

@@ -117,7 +117,7 @@ void nvs_get_plans(Plan *plans)
     uint16_t len = sizeof(Plan)*MAX_PLAN_NUM;
     err = nvs_get_blob(handle, "plans", (void*)plans, &len);
     ESP_LOGI("nvs_op", "nvs get plans get_blob");
-    if (err == ESP_ERR_NVS_NOT_FOUND)
+    if (err == ESP_ERR_NVS_NOT_FOUND || NVS_FORCE_RESET_PLANS)
     {
         reset_schemeset();
         nvs_set_blob(handle, "plans", saved_plans, sizeof(Plan)*MAX_PLAN_NUM);

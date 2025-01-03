@@ -123,7 +123,16 @@
         "protocal.h": "c",
         "string.h": "c",
         "tca9555.h": "c",
-        "nvs_flash.h": "c"
+        "nvs_flash.h": "c",
+        "stdbool.h": "c",
+        "stdint.h": "c",
+        "stdio.h": "c",
+        "timer.h": "c",
+        "pca9546.h": "c",
+        "imu.h": "c",
+        "gptimer.h": "c",
+        "adc_oneshot.h": "c",
+        "queue.h": "c"
     },
     "idf.flashType": "JTAG",
     "idf.portWin": "COM14",

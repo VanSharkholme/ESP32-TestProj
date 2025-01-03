@@ -130,6 +130,7 @@ void app_main(void)
     // TCA9554_SetPinState(TCA9554_PIN_5, 0);
     // TCA9554_SetPinState(TCA9554_PIN_6, 0);
     FuelGauge_Init();
+    FuelGauge_Get_SOC();
     GT_Init();
     IMU_Init();
     lvgl_init_setup();

@@ -199,23 +199,36 @@ float adc_impedance_measure()
 
 }
 
-bool adc_check_impedance()
+uint8_t adc_check_impedance()
 {
+    uint8_t flag = 0;
     TCA9555_SetPinState(TCA9555_PIN_ADC_ADDR0, 0);
     TCA9555_SetPinState(TCA9555_PIN_ADC_ADDR1, 0);
     float impedanceA = adc_impedance_measure();
     ESP_LOGI("ADC", "Impedance A: %.2f", impedanceA);
+    if (impedanceA > 500)
+        flag |= 1 << 0;
+    
     TCA9555_SetPinState(TCA9555_PIN_ADC_ADDR0, 1);
     TCA9555_SetPinState(TCA9555_PIN_ADC_ADDR1, 0);
     float impedanceB = adc_impedance_measure();
     ESP_LOGI("ADC", "Impedance B: %.2f", impedanceB);
+    if (impedanceB > 500)
+        flag |= 1 << 1;
+
     TCA9555_SetPinState(TCA9555_PIN_ADC_ADDR0, 0);
     TCA9555_SetPinState(TCA9555_PIN_ADC_ADDR1, 1);
     float impedanceC = adc_impedance_measure();
     ESP_LOGI("ADC", "Impedance C: %.2f", impedanceC);
+    if (impedanceC > 500)
+        flag |= 1 << 2;
+
     TCA9555_SetPinState(TCA9555_PIN_ADC_ADDR0, 1);
     TCA9555_SetPinState(TCA9555_PIN_ADC_ADDR1, 1);
     float impedanceD = adc_impedance_measure();
     ESP_LOGI("ADC", "Impedance D: %.2f", impedanceD);
-    return true;
+    if (impedanceD > 500)
+        flag |= 1 << 3;
+
+    return flag;
 }

@@ -24,6 +24,8 @@ void AddSchemeBtnCallback(lv_event_t *event)
     lv_obj_t *channel = lv_obj_get_parent(btn_container);
 //    UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
     lv_obj_set_user_data(scheme_scr, channel);
+    update_scheme_pages();
+    set_scheme_set_page(current_page_num);
     lv_scr_load(scheme_scr);
 }
 
@@ -44,12 +46,64 @@ void PlanOptionCallback(lv_event_t *event)
     Plan *plan = (Plan *) lv_obj_get_user_data(plan_option);
     lv_obj_t *channel = (lv_obj_t *) lv_obj_get_user_data(scheme_scr);
     UI_Channel *ch = (UI_Channel *)lv_obj_get_user_data(channel);
-    uint8_t plan_index = lv_dropdown_get_selected(plan_option);
-    ch->pPlan = lv_mem_alloc(sizeof(Plan));
-    memcpy(ch->pPlan, plan, sizeof(Plan));
-    ch->timer.remaining_seconds = plan->total_time_min * 60;
-    set_channel_state(channel, UI_CHANNEL_STATE_ADDED);
+    saved_plans[plan->id - 1].used_times++;
+    if (plan->channel_num == 1)
+    {
+        set_channel_plan(ch->index, plan, false);
+        ch->pPlan->id = ch->index;
+    }
+    else if (plan->channel_num >= 2 && plan->channel_num <= 4)
+    {
+        uint8_t spare_channel_indicator = 0;
+        uint8_t spare_channel_num = 0;
+        uint8_t unassigned_channel_num = plan->channel_num;
+        uint8_t assigning_channel_index = ch->index;
+        spare_channel_num = find_spare_channel(&spare_channel_indicator);
+        if (spare_channel_num < plan->channel_num)
+        {
+            create_warning_modal("所选方案通道数不足\n请重新选择");
+            return;
+        }
+        Plan *plan_to_assign = (Plan *)malloc(sizeof(Plan));
+        memcpy(plan_to_assign, plan, sizeof(Plan));
+        plan_to_assign->id = ch->index;
+        for (uint8_t i = 0; i < 4; ++i)
+        {
+            uint8_t next_channel = assigning_channel_index + i;
+            if ((next_channel == next_channel % 4) && (spare_channel_indicator & (1 << next_channel)))
+            {
+                lv_obj_t *assigning_channel = get_channel_by_index(next_channel);
+                UI_Channel *assigning_ch = (UI_Channel *)lv_obj_get_user_data(assigning_channel);
+                assigning_ch->pPlan = plan_to_assign;
+                assigning_ch->timer.remaining_seconds = plan_to_assign->total_time_min * 60;
+                set_channel_state(assigning_channel, UI_CHANNEL_STATE_ADDED, false);
+                lv_obj_set_style_bg_color(assigning_channel, lv_color_hex(0xdff7f5), 0);
+                unassigned_channel_num--;
+                if (unassigned_channel_num <= 0)
+                    break;
+            }
+            if (i == 0)
+                continue;
+            next_channel = assigning_channel_index - i;
+            if ((next_channel == next_channel % 4) && (spare_channel_indicator & (1 << next_channel)))
+            {
+                lv_obj_t *assigning_channel = get_channel_by_index(next_channel);
+                UI_Channel *assigning_ch = (UI_Channel *)lv_obj_get_user_data(assigning_channel);
+                assigning_ch->pPlan = plan_to_assign;
+                assigning_ch->timer.remaining_seconds = plan_to_assign->total_time_min * 60;
+                set_channel_state(assigning_channel, UI_CHANNEL_STATE_ADDED, false);
+                unassigned_channel_num--;
+                if (unassigned_channel_num <= 0)
+                    break;
+            }
+            
+        }
+        
+        
+    }
+    update_plan_position_by_used_times(plan);
     lv_scr_load(main_scr);
+    update_start_btn_status();
 }
 
 void ClearBtnCallback(lv_event_t *event)
@@ -58,9 +112,11 @@ void ClearBtnCallback(lv_event_t *event)
         lv_obj_t *channel = get_channel_by_index(i);
         UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
         if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
-            set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
+            return;
+            // set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
     }
     clear_all_channels();
+    update_start_btn_status();
 }
 
 void PrevPageBtnCallback(lv_event_t *event)
@@ -69,13 +125,17 @@ void PrevPageBtnCallback(lv_event_t *event)
     {
         return;
     }
-    current_page_num = ((current_page_num - 1) % valid_page_num + valid_page_num) % valid_page_num;
+    if (current_page_num == 0)
+    {
+        return;
+    }
+    current_page_num = current_page_num - 1;
     lv_obj_t *btn = lv_event_get_target(event);
     lv_obj_t *container = lv_obj_get_parent(btn);
     lv_obj_t *page_num_label = lv_obj_get_child(container, 1);
     lv_obj_t *scheme_set_list_container = lv_obj_get_user_data(btn);
-    set_scheme_set_page(scheme_set_list_container, current_page_num);
-    lv_label_set_text_fmt(page_num_label, "第%d:%d页", current_page_num + 1, valid_page_num);
+    set_scheme_set_page(current_page_num);
+    lv_label_set_text_fmt(page_num_label, "%d  /  %d", current_page_num + 1, valid_page_num);
 }
 
 void NextPageBtnCallback(lv_event_t *event)
@@ -84,27 +144,36 @@ void NextPageBtnCallback(lv_event_t *event)
     {
         return;
     }
-    current_page_num = (current_page_num + 1) % valid_page_num;
+    if (current_page_num + 1 >= valid_page_num)
+    {
+        return;
+    }
+    
+    current_page_num = current_page_num + 1;
     lv_obj_t *btn = lv_event_get_target(event);
     lv_obj_t *container = lv_obj_get_parent(btn);
     lv_obj_t *page_num_label = lv_obj_get_child(container, 1);
     lv_obj_t *scheme_set_list_container = lv_obj_get_user_data(btn);
-    set_scheme_set_page(scheme_set_list_container, current_page_num);
-    lv_label_set_text_fmt(page_num_label, "第%d:%d页", current_page_num + 1, valid_page_num);
+    set_scheme_set_page(current_page_num);
+    lv_label_set_text_fmt(page_num_label, "%d  /  %d", current_page_num + 1, valid_page_num);
 }
 
 void AddCurrentBtnCallback(lv_event_t *event)
 {
     lv_obj_t *btn = lv_event_get_target(event);
     lv_obj_t *current_container = lv_obj_get_parent(btn);
-    refresh_channel_current(current_container, 1);
+    lv_obj_t *channel = lv_obj_get_parent(current_container);
+    refresh_channel_current(channel, 1, false);
+    update_start_btn_status();
 }
 
 void SubCurrentBtnCallback(lv_event_t *event)
 {
     lv_obj_t *btn = lv_event_get_target(event);
     lv_obj_t *current_container = lv_obj_get_parent(btn);
-    refresh_channel_current(current_container, -1);
+    lv_obj_t *channel = lv_obj_get_parent(current_container);
+    refresh_channel_current(channel, -1, false);
+    update_start_btn_status();
 }
 
 void SyncConfirmBtnCallback(lv_event_t *event)
@@ -115,12 +184,14 @@ void SyncConfirmBtnCallback(lv_event_t *event)
     lv_obj_t *sync_adjust_bg = lv_obj_get_child(sync_adjust_container, 0);
     lv_obj_t *difference_label = lv_obj_get_child(sync_adjust_bg, 0);
     int8_t *difference = (int8_t *)lv_obj_get_user_data(difference_label);
+    uint8_t channel_indicator = 0;
+    channel_indicator = get_channel_needing_modifying();
     for (int i = 0; i < 4; ++i) {
-        lv_obj_t *channel = get_channel_by_index(i);
-        UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
-        if (ch->state == UI_CHANNEL_STATE_ADDED) {
-            lv_obj_t *adjust_container = lv_obj_get_child(channel, 2);
-            refresh_channel_current(adjust_container, *difference);
+        if ((channel_indicator & (1 << i)))
+        {
+            lv_obj_t *channel = get_channel_by_index(i);
+            UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
+            refresh_channel_current(channel, *difference, false);
         }
     }
 
@@ -440,11 +511,11 @@ void ChildLockBtnCallback(lv_event_t *event)
     *is_locked = !(*is_locked);
     if (*is_locked) {
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &LockButton_Black_fit, NULL);
-        lv_obj_align(btn, LV_ALIGN_LEFT_MID, -10, 0);
+        lv_obj_align(btn, LV_ALIGN_LEFT_MID, -17, 0);
         lv_obj_set_size(btn, LockButton_Black_fit.header.w, LockButton_Black_fit.header.h);
         for (int i = 0; i < 4; ++i) {
             lv_obj_t *channel = get_channel_by_index(i);
-            set_channel_state(channel, UI_CHANNEL_STATE_DISABLED);
+            set_channel_state(channel, UI_CHANNEL_STATE_DISABLED, false);
         }
 
         lv_obj_t *clear_btn = lv_obj_get_child(main_scr, 1);
@@ -456,6 +527,9 @@ void ChildLockBtnCallback(lv_event_t *event)
         lv_obj_t *start_btn = lv_obj_get_child(main_scr, 3);
         lv_imgbtn_set_src(start_btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Gray_fit, NULL);
         lv_obj_clear_flag(start_btn, LV_OBJ_FLAG_CLICKABLE);
+
+        lv_obj_t *start_label = lv_obj_get_child(main_scr, 4);
+        lv_obj_set_style_text_color(start_label, lv_color_hex(0xdfe1ea), 0);
     }
     else {
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &LockIconTransparent_fit, NULL);
@@ -464,7 +538,7 @@ void ChildLockBtnCallback(lv_event_t *event)
         for (int i = 0; i < 4; ++i) {
             lv_obj_t *channel = get_channel_by_index(i);
             UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
-            set_channel_state(channel, ch->prev_state);
+            set_channel_state(channel, ch->prev_state, false);
         }
 
         lv_obj_t *clear_btn = lv_obj_get_child(main_scr, 1);
@@ -473,23 +547,31 @@ void ChildLockBtnCallback(lv_event_t *event)
         lv_obj_t *sync_adjust_btn = lv_obj_get_child(main_scr, 2);
         lv_obj_add_flag(sync_adjust_btn, LV_OBJ_FLAG_CLICKABLE);
 
-        lv_obj_t *start_btn = lv_obj_get_child(main_scr, 3);
-        lv_imgbtn_set_src(start_btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Green_fit, NULL);
-        lv_obj_add_flag(start_btn, LV_OBJ_FLAG_CLICKABLE);
+        update_start_btn_status();
+        // lv_obj_t *start_btn = lv_obj_get_child(main_scr, 3);
+        // lv_imgbtn_set_src(start_btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Green_fit, NULL);
+        // lv_obj_add_flag(start_btn, LV_OBJ_FLAG_CLICKABLE);
     }
 }
 
 void TimerLabelClickCallback(lv_event_t *event)
 {
-    lv_obj_t *channel = lv_event_get_user_data(event);
-    UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
-    if (ch->timer.state == UI_TIMER_STATE_STOP || ch->timer.state == UI_TIMER_STATE_UNINIT)
+    lv_obj_t *in_channel = lv_event_get_user_data(event);
+    UI_Channel *in_ch = (UI_Channel*)lv_obj_get_user_data(in_channel);
+    uint8_t channel_indicator = get_channel_with_same_plan(in_ch->pPlan->id);
+    for (uint8_t i = 0; i < 4; i++)
     {
-        set_channel_timer_state(channel, UI_TIMER_STATE_START);
+        if (channel_indicator & (1 << i))
+        {
+            lv_obj_t *channel = get_channel_by_index(i);
+            UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
+            if (ch->timer.state == UI_TIMER_STATE_STOP || ch->timer.state == UI_TIMER_STATE_UNINIT)
+                set_channel_timer_state(channel, UI_TIMER_STATE_START);
+            else
+                set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
+        }
         
     }
-    else
-        set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
 
 }
 
@@ -498,28 +580,31 @@ void StimulationStartBtnCallback(lv_event_t *event)
     lv_obj_t *btn = lv_event_get_target(event);
     bool *is_stimulation_running = (bool *)lv_obj_get_user_data(btn);
     if (*is_stimulation_running == false) {
-        if(adc_check_impedance())
-        {
-
-            *is_stimulation_running = !(*is_stimulation_running);
-            lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &PauseButton_fit, NULL);
-            for (int i = 0; i < 4; ++i) {
-                lv_obj_t *channel = get_channel_by_index(i);
-                UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
-                if (0) { // 模拟阻抗测试未通过
-                    if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
-                        set_channel_state(channel, UI_CHANNEL_STATE_DROPPED);
-                }
-                else {
-                    if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
-                        set_channel_timer_state(channel, UI_TIMER_STATE_START);
-                }
+        uint8_t impedance_flag = adc_check_impedance();
+        impedance_flag = 0;
+        *is_stimulation_running = !(*is_stimulation_running);
+        lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &PauseButton_fit, NULL);
+        lv_obj_t *stimulation_start_label = lv_obj_get_child(main_scr, 4);
+        lv_label_set_text(stimulation_start_label, "全部暂停");
+        for (int i = 0; i < 4; ++i) {
+            lv_obj_t *channel = get_channel_by_index(i);
+            UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
+            if (impedance_flag & (1 << i)) {
+                if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
+                    set_channel_state(channel, UI_CHANNEL_STATE_DROPPED, false);
+            }
+            else {
+                if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
+                    set_channel_timer_state(channel, UI_TIMER_STATE_START);
             }
         }
+
     }
     else {
         *is_stimulation_running = !(*is_stimulation_running);
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Green_fit, NULL);
+        lv_obj_t *stimulation_start_label = lv_obj_get_child(main_scr, 4);
+        lv_label_set_text(stimulation_start_label, "全部开始");
         for (int i = 0; i < 4; ++i) {
             lv_obj_t *channel = get_channel_by_index(i);
             UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
@@ -534,7 +619,7 @@ void DropModalDelCallback(lv_event_t *event)
     lv_obj_t *channel = lv_event_get_user_data(event);
     UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
     if (ch->state == UI_CHANNEL_STATE_DROPPED && 1) {// 1代表阻抗测试通过
-        set_channel_state(channel, UI_CHANNEL_STATE_ADDED);
+        set_channel_state(channel, UI_CHANNEL_STATE_ADDED, false);
     }
 }
 
@@ -574,13 +659,31 @@ void ChannelLabelClickCallback(lv_event_t *event)
     lv_obj_set_style_text_color(title_label, lv_color_white(), 0);
     lv_obj_align(title_label, LV_ALIGN_TOP_LEFT, 30, 30);
 
-    lv_obj_t *plan_name_label = lv_label_create(modal_bg);
+    lv_obj_t *plan_name_container = lv_obj_create(modal_bg);
+    lv_obj_align(plan_name_container, LV_ALIGN_TOP_LEFT, 30, 80);
+    lv_obj_set_size(plan_name_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(plan_name_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(plan_name_container, LV_OPA_TRANSP, 0);
+    lv_obj_t *plan_name_icon = lv_img_create(plan_name_container);
+    lv_img_set_src(plan_name_icon, &Info_Icon_Detail_fit);
+    lv_obj_set_style_pad_all(plan_name_icon, 5, 0);
+    lv_obj_align(plan_name_icon, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_t *plan_name_label = lv_label_create(plan_name_container);
     lv_label_set_text_fmt(plan_name_label, "方案名称: %s", pPlan->name);
     lv_obj_set_style_text_font(plan_name_label, &AliPuHui_24, 0);
     lv_obj_set_style_text_color(plan_name_label, lv_color_white(), 0);
-    lv_obj_align(plan_name_label, LV_ALIGN_TOP_LEFT, 30, 80);
+    lv_obj_align_to(plan_name_label, plan_name_icon, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
 
-    lv_obj_t *wave_type_label = lv_label_create(modal_bg);
+    lv_obj_t *wave_type_container = lv_obj_create(modal_bg);
+    lv_obj_align(wave_type_container, LV_ALIGN_TOP_LEFT, 30, 120);
+    lv_obj_set_size(wave_type_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(wave_type_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(wave_type_container, LV_OPA_TRANSP, 0);
+    lv_obj_t *wave_type_icon = lv_img_create(wave_type_container);
+    lv_img_set_src(wave_type_icon, &Info_Icon_Wavetype_fit);
+    lv_obj_set_style_pad_all(wave_type_icon, 5, 0);
+    lv_obj_align(wave_type_icon, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_t *wave_type_label = lv_label_create(wave_type_container);
     switch (pPlan->wave_type)
     {
     case WAVE_TYPE_DUAL_PHASE_SQUARE:
@@ -600,19 +703,58 @@ void ChannelLabelClickCallback(lv_event_t *event)
     }
     lv_obj_set_style_text_font(wave_type_label, &AliPuHui_24, 0);
     lv_obj_set_style_text_color(wave_type_label, lv_color_white(), 0);
-    lv_obj_align(wave_type_label, LV_ALIGN_TOP_LEFT, 30, 120);
+    lv_obj_align_to(wave_type_label, wave_type_icon, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
 
-    lv_obj_t *freq_label = lv_label_create(modal_bg);
-    lv_label_set_text_fmt(freq_label, "频率: %d Hz", pPlan->freq_min);
-    lv_obj_set_style_text_font(freq_label, &AliPuHui_24, 0);
-    lv_obj_set_style_text_color(freq_label, lv_color_white(), 0);
-    lv_obj_align(freq_label, LV_ALIGN_TOP_LEFT, 30, 160);
+    lv_obj_t *wave_freq_container = lv_obj_create(modal_bg);
+    lv_obj_align(wave_freq_container, LV_ALIGN_TOP_LEFT, 30, 160);
+    lv_obj_set_size(wave_freq_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(wave_freq_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(wave_freq_container, LV_OPA_TRANSP, 0);
+    lv_obj_t *wave_freq_icon = lv_img_create(wave_freq_container);
+    lv_img_set_src(wave_freq_icon, &Info_Icon_Freq_fit);
+    lv_obj_set_style_pad_all(wave_freq_icon, 5, 0);
+    lv_obj_align(wave_freq_icon, LV_ALIGN_LEFT_MID, 0, 0);
 
-    lv_obj_t *pulse_width_label = lv_label_create(modal_bg);
-    lv_label_set_text_fmt(pulse_width_label, "脉宽: %d us", pPlan->pulse_width);
-    lv_obj_set_style_text_font(pulse_width_label, &AliPuHui_24, 0);
-    lv_obj_set_style_text_color(pulse_width_label, lv_color_white(), 0);
-    lv_obj_align(pulse_width_label, LV_ALIGN_TOP_LEFT, 30, 200);
+    lv_obj_t *width_container = lv_obj_create(modal_bg);
+    lv_obj_align(width_container, LV_ALIGN_TOP_LEFT, 30, 200);
+    lv_obj_set_size(width_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(width_container, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_opa(width_container, LV_OPA_TRANSP, 0);
+    lv_obj_t *width_icon = lv_img_create(width_container);
+    lv_img_set_src(width_icon, &Info_Icon_Width_fit);
+    lv_obj_set_style_pad_all(width_icon, 5, 0);
+    lv_obj_align(width_icon, LV_ALIGN_LEFT_MID, 0, 0);
+
+    if (pPlan->freq_type == FREQ_TYPE_FIXED)
+    {
+        lv_obj_t *freq_label = lv_label_create(wave_freq_container);
+        lv_label_set_text_fmt(freq_label, "脉冲频率: %d Hz", pPlan->freq_min);
+        lv_obj_set_style_text_font(freq_label, &AliPuHui_24, 0);
+        lv_obj_set_style_text_color(freq_label, lv_color_white(), 0);
+        lv_obj_align_to(freq_label, wave_freq_icon, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+
+        lv_obj_t *pulse_width_label = lv_label_create(width_container);
+        lv_label_set_text_fmt(pulse_width_label, "脉冲宽度: %d us", pPlan->pulse_width_us);
+        lv_obj_set_style_text_font(pulse_width_label, &AliPuHui_24, 0);
+        lv_obj_set_style_text_color(pulse_width_label, lv_color_white(), 0);
+        lv_obj_align_to(pulse_width_label, width_icon, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    }
+    else if (pPlan->freq_type == FREQ_TYPE_VARY)
+    {
+        lv_obj_t *carrier_freq_label = lv_label_create(wave_freq_container);
+        lv_label_set_text_fmt(carrier_freq_label, "载波频率: %d Hz", pPlan->freq_max);
+        lv_obj_set_style_text_font(carrier_freq_label, &AliPuHui_24, 0);
+        lv_obj_set_style_text_color(carrier_freq_label, lv_color_white(), 0);
+        lv_obj_align_to(carrier_freq_label, wave_freq_icon, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+
+        lv_obj_t *mod_freq_label = lv_label_create(width_container);
+        lv_label_set_text_fmt(mod_freq_label, "调制频率: %d us", pPlan->freq_min);
+        lv_obj_set_style_text_font(mod_freq_label, &AliPuHui_24, 0);
+        lv_obj_set_style_text_color(mod_freq_label, lv_color_white(), 0);
+        lv_obj_align_to(mod_freq_label, width_icon, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    }
+    
+
 }
 
 void ProgressBarIndicatorCallback(lv_event_t * event)
@@ -662,12 +804,17 @@ void CurrentWarningModalCancelCallback(lv_event_t *event)
 void CurrentWarningModalConfirmCallback(lv_event_t *event)
 {
     lv_obj_t *obj = lv_event_get_user_data(event);
-    lv_obj_t *current_container = lv_obj_get_user_data(obj);
-    set_channel_current_by_force(current_container, UI_WARNING_CURRENT_LIMIT + 1);
+    lv_obj_t *channel = lv_obj_get_user_data(obj);
+    // set_channel_current_by_force(channel, UI_WARNING_CURRENT_LIMIT + 1);
+    refresh_channel_current(channel, 1, true);
     lv_obj_del_async(obj);
 
 }
 
+void MainScrBtnCallback(lv_event_t *event)
+{
+    lv_scr_load(main_scr);
+}
 
 void calib_progress_task(void *arg)
 {
@@ -694,16 +841,30 @@ void calib_progress_task(void *arg)
             if (*calib_cnt == 1)
             {
                 lv_label_set_text(label, "第二次");
+                lv_obj_t *start_btn_label = lv_obj_get_child(start_btn_container, 1);
+                lv_label_set_text(start_btn_label, "开始校准");
             }
             else if (*calib_cnt == 2)
             {
                 lv_label_set_text(label, "第三次");
+                lv_obj_t *start_btn_label = lv_obj_get_child(start_btn_container, 1);
+                lv_label_set_text(start_btn_label, "开始校准");
             }
             else if (*calib_cnt == 3)
             {
                 lv_obj_del_async(progress_bar);
                 lv_obj_del_async(start_btn_container);
                 lv_label_set_text_fmt(label, "校准结果  %dHZ", 4);
+                lv_obj_t *btn = lv_btn_create(scr);
+                lv_obj_set_size(btn, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+                lv_obj_align_to(btn, label, LV_ALIGN_OUT_BOTTOM_MID, -55, 20);
+                lv_obj_add_event_cb(btn, MainScrBtnCallback, LV_EVENT_CLICKED, NULL);
+                lv_obj_set_style_bg_color(btn, lv_color_hex(0x54bcbd), 0);
+                lv_obj_t *btn_label = lv_label_create(btn);
+                lv_obj_center(btn_label);
+                lv_label_set_text(btn_label, "开始刺激");
+                lv_obj_set_style_text_font(btn_label, &AliPuHui_30, 0);
+                
             }
             lvgl_unlock();
             break;
@@ -716,13 +877,16 @@ void CalibStartBtnCallback(lv_event_t *event)
 {
     lv_obj_t *btn = lv_event_get_target(event);
     lv_obj_t *scr = lv_event_get_user_data(event);
+    lv_obj_t *container = lv_obj_get_parent(btn);
+    lv_obj_t *label = lv_obj_get_child(container, 1);
     UI_CalibState *calib_state = (UI_CalibState *)lv_obj_get_user_data(scr);
     lv_obj_t *progress_bar = lv_obj_get_child(scr, 2);
-    lv_obj_t *label = lv_obj_get_child(scr, 3);
+    // lv_obj_t *label = lv_obj_get_child(scr, 3);
     uint8_t *calib_cnt = (uint8_t *)lv_obj_get_user_data(label);
     if (*calib_state == UI_CALIB_STATE_STOP) {
         *calib_state = UI_CALIB_STATE_START;
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &PauseIconTransparent_fit, NULL);
+        lv_label_set_text(label, "暂停");
         xTaskCreate(calib_progress_task, "calib_progress_task", 1024 * 8, progress_bar, 1, NULL);
         xTaskCreate(IMU_read_data_task, "IMU_read_data_Task", 1024 * 8, NULL, 1, &imu_task_handle);
     }
@@ -730,9 +894,11 @@ void CalibStartBtnCallback(lv_event_t *event)
         *calib_state = UI_CALIB_STATE_PAUSE;
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartIconTransparent_fit, NULL);
         vTaskSuspend(imu_task_handle);
+        lv_label_set_text(label, "开始校准");
     }
     else if (*calib_state == UI_CALIB_STATE_PAUSE) {
         *calib_state = UI_CALIB_STATE_START;
+        lv_label_set_text(label, "暂停");
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &PauseIconTransparent_fit, NULL);
         vTaskResume(imu_task_handle);
     }
