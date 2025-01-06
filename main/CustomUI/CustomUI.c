@@ -693,6 +693,8 @@ void set_battery_level()
         lv_obj_t *soc_label = lv_obj_get_child(charging_ring, 0);
         lv_label_set_text_fmt(soc_label, "%d", g_battery_soc);
         empty_battery = lv_obj_get_child(top_bar, 0);
+        lv_obj_t *percent_label = lv_obj_get_child(charging_ring, 1);
+        lv_obj_align_to(percent_label, soc_label, LV_ALIGN_OUT_RIGHT_BOTTOM, 0, -10);
     }
     else
         empty_battery = lv_obj_get_child(top_bar, 1);
@@ -741,7 +743,11 @@ void set_bluetooth_status(bool is_connected)
 {
     lv_obj_t *scr = lv_disp_get_scr_act(NULL);
     lv_obj_t *top_bar = lv_obj_get_child(scr, 0);
-    lv_obj_t *bluetooth_icon = lv_obj_get_child(top_bar, 2);
+    lv_obj_t *bluetooth_icon;
+    if (scr == charging_scr)
+        bluetooth_icon = lv_obj_get_child(top_bar, 1);
+    else
+        bluetooth_icon = lv_obj_get_child(top_bar, 2);
     if (is_connected)
         lv_img_set_src(bluetooth_icon, &BluetoothIcon_fit);
     else

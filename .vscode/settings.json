@@ -132,7 +132,10 @@
         "imu.h": "c",
         "gptimer.h": "c",
         "adc_oneshot.h": "c",
-        "queue.h": "c"
+        "queue.h": "c",
+        "imu_reg.h": "c",
+        "esp_heap_caps.h": "c",
+        "uart_ens.h": "c"
     },
     "idf.flashType": "JTAG",
     "idf.portWin": "COM14",

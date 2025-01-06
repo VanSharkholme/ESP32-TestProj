@@ -1,6 +1,7 @@
 #include "protocal.h"
 
 void set_channel_plan(uint8_t index, Plan *plan, bool is_force_refresh);
+void update_start_btn_status();
 bool lvgl_lock(void);
 void lvgl_unlock(void);
 
@@ -158,6 +159,7 @@ void cmd_handler(frame_t *f)
                 if (lvgl_lock())
                 {
                     set_channel_plan(channel_id, &bt_plan, true);
+                    update_start_btn_status();
                     lvgl_unlock();
                 }
                 

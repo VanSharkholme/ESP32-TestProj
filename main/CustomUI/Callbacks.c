@@ -196,6 +196,8 @@ void SyncConfirmBtnCallback(lv_event_t *event)
     }
 
     lv_obj_del_async(modal_bg);
+    update_start_btn_status();
+
 }
 
 void CancelBtnCallback(lv_event_t *event)
