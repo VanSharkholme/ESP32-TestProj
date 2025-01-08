@@ -50,7 +50,6 @@ void PlanOptionCallback(lv_event_t *event)
     if (plan->channel_num == 1)
     {
         set_channel_plan(ch->index, plan, false);
-        ch->pPlan->id = ch->index;
     }
     else if (plan->channel_num >= 2 && plan->channel_num <= 4)
     {
@@ -64,9 +63,9 @@ void PlanOptionCallback(lv_event_t *event)
             create_warning_modal("所选方案通道数不足\n请重新选择");
             return;
         }
-        Plan *plan_to_assign = (Plan *)malloc(sizeof(Plan));
-        memcpy(plan_to_assign, plan, sizeof(Plan));
-        plan_to_assign->id = ch->index;
+        // Plan *plan_to_assign = (Plan *)malloc(sizeof(Plan));
+        // memcpy(plan_to_assign, plan, sizeof(Plan));
+        // plan_to_assign->id = ch->index + 1;
         for (uint8_t i = 0; i < 4; ++i)
         {
             uint8_t next_channel = assigning_channel_index + i;
@@ -74,8 +73,10 @@ void PlanOptionCallback(lv_event_t *event)
             {
                 lv_obj_t *assigning_channel = get_channel_by_index(next_channel);
                 UI_Channel *assigning_ch = (UI_Channel *)lv_obj_get_user_data(assigning_channel);
-                assigning_ch->pPlan = plan_to_assign;
-                assigning_ch->timer.remaining_seconds = plan_to_assign->total_time_min * 60;
+                assigning_ch->pPlan = (Plan *)malloc(sizeof(Plan));
+                memcpy(assigning_ch->pPlan, plan, sizeof(Plan));
+                assigning_ch->pPlan->id = next_channel + 1;
+                assigning_ch->timer.remaining_seconds = plan->total_time_min * 60;
                 set_channel_state(assigning_channel, UI_CHANNEL_STATE_ADDED, false);
                 lv_obj_set_style_bg_color(assigning_channel, lv_color_hex(0xdff7f5), 0);
                 unassigned_channel_num--;
@@ -89,8 +90,10 @@ void PlanOptionCallback(lv_event_t *event)
             {
                 lv_obj_t *assigning_channel = get_channel_by_index(next_channel);
                 UI_Channel *assigning_ch = (UI_Channel *)lv_obj_get_user_data(assigning_channel);
-                assigning_ch->pPlan = plan_to_assign;
-                assigning_ch->timer.remaining_seconds = plan_to_assign->total_time_min * 60;
+                assigning_ch->pPlan = (Plan *)malloc(sizeof(Plan));
+                memcpy(assigning_ch->pPlan, plan, sizeof(Plan));
+                assigning_ch->pPlan->id = next_channel + 1;
+                assigning_ch->timer.remaining_seconds = plan->total_time_min * 60;
                 set_channel_state(assigning_channel, UI_CHANNEL_STATE_ADDED, false);
                 unassigned_channel_num--;
                 if (unassigned_channel_num <= 0)
@@ -163,7 +166,10 @@ void AddCurrentBtnCallback(lv_event_t *event)
     lv_obj_t *btn = lv_event_get_target(event);
     lv_obj_t *current_container = lv_obj_get_parent(btn);
     lv_obj_t *channel = lv_obj_get_parent(current_container);
+    UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
     refresh_channel_current(channel, 1, false);
+    if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
+        ens_start_channel_plan(ch->pPlan, ch->index);
     update_start_btn_status();
 }
 
@@ -172,7 +178,10 @@ void SubCurrentBtnCallback(lv_event_t *event)
     lv_obj_t *btn = lv_event_get_target(event);
     lv_obj_t *current_container = lv_obj_get_parent(btn);
     lv_obj_t *channel = lv_obj_get_parent(current_container);
+    UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
     refresh_channel_current(channel, -1, false);
+    if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
+        ens_start_channel_plan(ch->pPlan, ch->index);
     update_start_btn_status();
 }
 
@@ -558,22 +567,23 @@ void ChildLockBtnCallback(lv_event_t *event)
 
 void TimerLabelClickCallback(lv_event_t *event)
 {
-    lv_obj_t *in_channel = lv_event_get_user_data(event);
-    UI_Channel *in_ch = (UI_Channel*)lv_obj_get_user_data(in_channel);
-    uint8_t channel_indicator = get_channel_with_same_plan(in_ch->pPlan->id);
-    for (uint8_t i = 0; i < 4; i++)
+    lv_obj_t *channel = lv_event_get_user_data(event);
+    UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
+
+    if (ch->timer.state == UI_TIMER_STATE_STOP || ch->timer.state == UI_TIMER_STATE_UNINIT)
     {
-        if (channel_indicator & (1 << i))
-        {
-            lv_obj_t *channel = get_channel_by_index(i);
-            UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
-            if (ch->timer.state == UI_TIMER_STATE_STOP || ch->timer.state == UI_TIMER_STATE_UNINIT)
-                set_channel_timer_state(channel, UI_TIMER_STATE_START);
-            else
-                set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
+        bool impedance_flag = adc_check_impedance(ch->index);
+        if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START) {
+            if (impedance_flag) {
+                set_channel_state(channel, UI_CHANNEL_STATE_DROPPED, false);
+            }
+            else {
+                    set_channel_timer_state(channel, UI_TIMER_STATE_START);
+            }
         }
-        
     }
+    else
+        set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
 
 }
 
@@ -582,16 +592,16 @@ void StimulationStartBtnCallback(lv_event_t *event)
     lv_obj_t *btn = lv_event_get_target(event);
     bool *is_stimulation_running = (bool *)lv_obj_get_user_data(btn);
     if (*is_stimulation_running == false) {
-        uint8_t impedance_flag = adc_check_impedance();
         // impedance_flag = 0;
         *is_stimulation_running = !(*is_stimulation_running);
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &PauseButton_fit, NULL);
         lv_obj_t *stimulation_start_label = lv_obj_get_child(main_scr, 4);
         lv_label_set_text(stimulation_start_label, "全部暂停");
         for (int i = 0; i < 4; ++i) {
+            bool impedance_flag = adc_check_impedance(i);
             lv_obj_t *channel = get_channel_by_index(i);
             UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
-            if (impedance_flag & (1 << i)) {
+            if (impedance_flag) {
                 if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
                     set_channel_state(channel, UI_CHANNEL_STATE_DROPPED, false);
             }
@@ -618,10 +628,12 @@ void StimulationStartBtnCallback(lv_event_t *event)
 
 void DropModalDelCallback(lv_event_t *event)
 {
+    lv_obj_t *obj = lv_event_get_target(event);
+    lv_obj_t *modal_bg = lv_obj_get_parent(obj);
     lv_obj_t *channel = lv_event_get_user_data(event);
     UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
-    if (ch->state == UI_CHANNEL_STATE_DROPPED && 1) {// 1代表阻抗测试通过
-        set_channel_state(channel, UI_CHANNEL_STATE_ADDED, false);
+    if (adc_check_impedance(ch->index) == 0) {// 代表阻抗测试通过
+        lv_obj_del_async(modal_bg);
     }
 }
 

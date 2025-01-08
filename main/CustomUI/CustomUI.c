@@ -259,18 +259,18 @@ void refresh_channel_current(lv_obj_t *in_channel, int8_t difference, bool is_fo
         current += difference;
     ch->pPlan->current_mA = current;
 //    ui_ch->pPlan->g_chanelConfig[ui_ch->index].configParameter.current = current;
-    uint8_t channel_indicator = get_channel_with_same_plan(ch->pPlan->id);
-    for (uint8_t i = 0; i < 4; ++i) {
-        if (channel_indicator & (1 << i))
-        {
-            lv_obj_t *channel = get_channel_by_index(i);
-            lv_obj_t *current_container = lv_obj_get_child(channel, 2);
-            lv_obj_t *current_arc = lv_obj_get_child(current_container, 2);
-            lv_arc_set_value(current_arc, current);
-            lv_obj_t *current_label = lv_obj_get_child(current_arc, 0);
-            lv_label_set_text_fmt(current_label, "%d", current);
-        }
-    }
+    // uint8_t channel_indicator = get_channel_with_same_plan(ch->pPlan->id);
+    // for (uint8_t i = 0; i < 4; ++i) {
+    //     if (channel_indicator & (1 << i))
+    //     {
+    lv_obj_t *channel = in_channel;
+    lv_obj_t *current_container = lv_obj_get_child(channel, 2);
+    lv_obj_t *current_arc = lv_obj_get_child(current_container, 2);
+    lv_arc_set_value(current_arc, current);
+    lv_obj_t *current_label = lv_obj_get_child(current_arc, 0);
+    lv_label_set_text_fmt(current_label, "%d", current);
+        // }
+    // }
 
 }
 
@@ -318,6 +318,24 @@ void check_last_channel_finished(void)
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Green_fit, NULL);
         statework.st_bit.StRun = 0;
     }    
+}
+
+void ens_stop_single_channel_plan(Plan *plan, uint8_t index)
+{
+    ens_uart_send_cmd(0x31, 0x10, NULL, 0);
+    uint8_t ch_w_same_plan = get_channel_with_same_plan(plan->id);
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        lv_obj_t *channel = get_channel_by_index(i);
+        UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
+        if (ch_w_same_plan & (1 << i))
+            continue;
+        if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
+        {
+            uint8_t channel_indicator = 1 << i;
+            ens_uart_send_cmd(0x30, 0x10, &channel_indicator, 1);
+        }
+    }
 }
 
 void set_channel_timer_state(lv_obj_t *channel, UI_ChannelTimerState state)
@@ -368,6 +386,7 @@ void set_channel_plan(uint8_t index, Plan *plan, bool is_force_refresh)
     UI_Channel *ch = (UI_Channel *)lv_obj_get_user_data(channel);
     ch->pPlan = malloc(sizeof(Plan));
     memcpy(ch->pPlan, plan, sizeof(Plan));
+    ch->pPlan->id = index + 1;
     ch->timer.remaining_seconds = plan->total_time_min * 60;
     set_channel_state(channel, UI_CHANNEL_STATE_ADDED, is_force_refresh);
 }
@@ -393,8 +412,12 @@ void set_channel_state(lv_obj_t *channel, UI_ChannelState state, bool is_force_r
     UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
     if (ch->state != state || is_force_refresh)
     {
-        ch->prev_state = ch->state;
-        ch->state = state;
+        if (state != UI_CHANNEL_STATE_DROPPED)
+        {
+            ch->prev_state = ch->state;
+            ch->state = state;
+        }
+        
         if (state == UI_CHANNEL_STATE_DISABLED) {
             if (ch->prev_state == UI_CHANNEL_STATE_ADDED)
             {

@@ -135,7 +135,8 @@
         "queue.h": "c",
         "imu_reg.h": "c",
         "esp_heap_caps.h": "c",
-        "uart_ens.h": "c"
+        "uart_ens.h": "c",
+        "adc_cali.h": "c"
     },
     "idf.flashType": "JTAG",
     "idf.portWin": "COM14",
