@@ -281,7 +281,8 @@ void update_plan_position_by_used_times(Plan *pPlan)
 
 void plan_to_data(Plan *plan, uint8_t channel_id, uint8_t *out_data)
 {
-    out_data[0] = (plan->id & 0x0F) << 4 | ((1 << channel_id) & 0x0F);
+    // out_data[0] = (plan->id & 0x0F) << 4 | ((1 << channel_id) & 0x0F);
+    out_data[0] = (1) << 4 | (channel_id & 0x0F);  // 方案编号全部设置为1
     out_data[1] = plan->wave_type;
     out_data[2] = plan->current_mA;
     out_data[3] = 0;

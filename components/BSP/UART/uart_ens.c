@@ -75,7 +75,8 @@ void ens_uart_send_cmd(uint8_t cmd, uint8_t cmd_type, uint8_t *data, uint16_t le
 void ens_uart_send_channel_base(Plan *plan, uint8_t channel_id)
 {
     uint8_t data[5];
-    data[0] = plan->id;
+    // data[0] = plan->id;
+    data[0] = 1; // 方案编号全部设置为1
     data[1] = 0;
     data[2] = 1 << channel_id;
     data[3] = 0;
@@ -95,7 +96,8 @@ void ens_start_channel_plan(Plan *pPlan, uint8_t index)
     ens_uart_send_channel_base(pPlan, index);
     ens_uart_send_plan(pPlan, index);
     uint8_t start_stim_data = 0;
-    start_stim_data |= pPlan->id << 4;
+    // start_stim_data |= pPlan->id << 4;
+    start_stim_data |= 1 << 4; // 方案编号全部设置为1
     start_stim_data |= 1 << index;
     ens_uart_send_cmd(0x30, 0x10, &start_stim_data, 1);
 }
