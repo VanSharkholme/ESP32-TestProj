@@ -117,8 +117,8 @@ void cmd_handler(frame_t *f)
                 uint8_t plan_id = f->data[0];
                 bt_plan.id = 0;
                 bt_plan.is_bluetooth = true;
-                // schemeType_t scheme_type = (schemeType_t)f->data[1];
-                // bt_plan.scheme_type = scheme_type;
+                schemeType_t scheme_type = (schemeType_t)f->data[1];
+                bt_plan.scheme_type = scheme_type;
                 uint8_t channel_indicator = f->data[2];
                 uint8_t channel_num = 0;
                 while (channel_indicator)
