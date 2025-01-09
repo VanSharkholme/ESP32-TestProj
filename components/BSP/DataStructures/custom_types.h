@@ -10,7 +10,8 @@ typedef enum {
     WAVE_TYPE_DUAL_PHASE_SQUARE = 0b00,
     WAVE_TYPE_SINGLE_PHASE_SQUARE = 0b01,
     WAVE_TYPE_TRIANGLE = 0b10,
-    WAVE_TYPE_SINE = 0b11
+    WAVE_TYPE_SINE = 0b11,
+    WAVE_TYPE_ASY = 0b100,
 } waveType_t;
 
 typedef enum {
@@ -18,18 +19,18 @@ typedef enum {
     FREQ_TYPE_VARY = 0b01,
 } freqType_t;
 
-// typedef enum {
-//     SCHEME_TYPE_NMES,
-//     SCHEME_TYPE_TENS,
-//     SCHEME_TYPE_MNS,
-//     SCHEME_TYPE_TNS,
-//     SCHEME_TYPE_OTHER
-// } schemeType_t;
+typedef enum {
+    SCHEME_TYPE_NMES,
+    SCHEME_TYPE_TENS,
+    SCHEME_TYPE_OTHER,
+    SCHEME_TYPE_MID,
+    SCHEME_TYPE_LOW,
+} schemeType_t;
 
 typedef struct
 {
     uint8_t id;
-    // schemeType_t scheme_type; // 模式
+    schemeType_t scheme_type; // 模式
     uint8_t name_len;
     char name[50];
     bool is_bluetooth;

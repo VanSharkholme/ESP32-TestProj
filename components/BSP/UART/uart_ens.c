@@ -77,7 +77,7 @@ void ens_uart_send_channel_base(Plan *plan, uint8_t channel_id)
     uint8_t data[5];
     // data[0] = plan->id;
     data[0] = 1; // 方案编号全部设置为1
-    data[1] = 0;
+    data[1] = plan->scheme_type;
     data[2] = 1 << channel_id;
     data[3] = 0;
     data[4] = 0;
