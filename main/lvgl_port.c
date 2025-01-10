@@ -44,11 +44,12 @@ void IRAM_ATTR lvgl_flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_
 void IRAM_ATTR lvgl_indev_read_cb(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
 {
     int16_t x, y;
-    if(GT911_Read_Coordinate(&x, &y))
+    if(!is_hibernating && GT911_Read_Coordinate(&x, &y))
     {
         data->point.x = x;
         data->point.y = y;
         data->state = LV_INDEV_STATE_PRESSED;
+        reset_hibernation_timer();
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }

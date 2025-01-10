@@ -60,6 +60,7 @@ LV_IMG_DECLARE(Info_Icon_Width_fit)
 LV_IMG_DECLARE(Bluetooth_Disconnect_fit)
 LV_IMG_DECLARE(NextPageBtn_fit)
 LV_IMG_DECLARE(PrevPageBtn_fit)
+LV_IMG_DECLARE(UnlockIconTransparent_fit)
 
 LV_FONT_DECLARE(AliPuHui_20)
 LV_FONT_DECLARE(AliPuHui_24)
@@ -116,6 +117,7 @@ typedef struct {
     UI_ChannelState state;
     UI_ChannelState prev_state;
     UI_ChannelTimer timer;
+    lv_timer_t *tmp_timer;
 //    UI_Plan *p_uiplan;
     Plan *pPlan;
 } UI_Channel;
@@ -145,6 +147,7 @@ extern lv_obj_t *calib_scr;
 
 extern uint8_t valid_page_num;
 extern uint8_t current_page_num;
+extern bool is_hibernating;
 
 void clear_all_channels();
 void set_channel_state(lv_obj_t *channel, UI_ChannelState state, bool is_force_refresh);
@@ -162,6 +165,10 @@ void update_scheme_pages();
 void set_battery_level();
 void load_charging_scr();
 void exit_charging_scr();
+void load_main_scr();
+void pause_hibernation_timer();
+void resume_hibernation_timer();
+void reset_hibernation_timer();
 void update_start_btn_status();
 lv_obj_t *create_calib_scr();
 void CustomUI();

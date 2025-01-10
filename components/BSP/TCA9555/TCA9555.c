@@ -7,11 +7,14 @@ bool lvgl_lock(void);
 void lvgl_unlock(void);
 void load_charging_scr();
 void exit_charging_scr();
+void pause_all_channels();
+void wakeup();
 
 i2c_master_dev_handle_t TCA9555_dev_handle = NULL;
 PIN_IO pin_io_old,pin_io;
 StateWork statework;
 static const char *TAG = "TCA9555";
+extern bool is_hibernating;
 
 static SemaphoreHandle_t tca9555_mutex = NULL;
 
@@ -210,8 +213,10 @@ void checkIO(void)
         if(pin_io.pin_bit.pin_chr_sta_ind == 0)
         {
             statework.st_bit.StChrg = 1;
+            ble_start_adv();
             if (lvgl_lock())
             {
+                pause_all_channels();
                 load_charging_scr();
                 lvgl_unlock();
             }
@@ -219,6 +224,8 @@ void checkIO(void)
         else
         {
             statework.st_bit.StChrg = 0;
+            ble_disconnect();
+            ble_stop_adv();
             if (lvgl_lock())
             {
                 exit_charging_scr();
@@ -238,6 +245,11 @@ void checkIO(void)
         bool level;
         if(pin_io.pin_bit.pin_bl_adj)
         {
+            if (is_hibernating)
+            {
+                wakeup();
+            }
+            
             level = TCA9555_GetPinState(TCA9555_PIN_BL_EN);
             //ESP_LOGI(TAG, "level  %d ",level);
             level = level? 0:1;

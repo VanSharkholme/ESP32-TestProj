@@ -136,7 +136,14 @@
         "imu_reg.h": "c",
         "esp_heap_caps.h": "c",
         "uart_ens.h": "c",
-        "adc_cali.h": "c"
+        "adc_cali.h": "c",
+        "lv_mem.h": "c",
+        "lv_hal_tick.h": "c",
+        "lv_ll.h": "c",
+        "esp_bt.h": "c",
+        "lv_timer.h": "c",
+        "esp_timer.h": "c",
+        "stddef.h": "c"
     },
     "idf.flashType": "JTAG",
     "idf.portWin": "COM14",

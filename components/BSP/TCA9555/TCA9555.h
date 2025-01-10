@@ -3,6 +3,7 @@
 
 #include "I2C.h"
 #include "PCA9546.h"
+#include "bluetooth.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"

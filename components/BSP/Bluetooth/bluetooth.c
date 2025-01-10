@@ -18,6 +18,7 @@ uint16_t BLE_MTUSIZE = 23;
 
 static esp_gatt_if_t g_gatts_if;
 static uint16_t conn_id = 0;
+static esp_bd_addr_t remote_device_address;
 static uint16_t gatts_service_handle_table[GATTS_HANDLE_NUM];
 
 esp_attr_control_t gatts_attr_control = {
@@ -74,14 +75,14 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
     switch (event) {
         case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:{
             adv_config_done &= ~ADV_CONFIG_FLAG;
-            if (adv_config_done == 0) {
+            if (adv_config_done == 0 && statework.st_bit.StChrg) {
                 esp_ble_gap_start_advertising(&adv_params);
             }
             break;
         }
         case ESP_GAP_BLE_SCAN_RSP_DATA_SET_COMPLETE_EVT: {
             adv_config_done &= ~SCAN_RSP_CONFIG_FLAG;
-            if (adv_config_done == 0) {
+            if (adv_config_done == 0 && statework.st_bit.StChrg) {
                 esp_ble_gap_start_advertising(&adv_params);
             }
             break;
@@ -230,6 +231,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
             }
             ESP_LOGI(BT_TAG, "Device connected, conn_id %d", param->connect.conn_id);
             conn_id = param->connect.conn_id;
+            memcpy(remote_device_address, param->connect.remote_bda, sizeof(esp_bd_addr_t));
             bluetooth_connected = true;
             if (lvgl_lock())
             {
@@ -242,8 +244,10 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
         case ESP_GATTS_DISCONNECT_EVT: {
             ESP_LOGI(BT_TAG, "Device disconnected, reason code %d", param->disconnect.reason);
             conn_id = 0;
+            memset(remote_device_address, 0, sizeof(esp_bd_addr_t));
             bluetooth_connected = false;
-            esp_ble_gap_start_advertising(&adv_params);
+            if (statework.st_bit.StChrg)
+                esp_ble_gap_start_advertising(&adv_params);
             if (lvgl_lock())
             {
                 set_bluetooth_status(false);
@@ -391,3 +395,21 @@ void ble_send_data(uint8_t *data, uint16_t length)
     }
 }
 
+void ble_disconnect()
+{
+    if (bluetooth_connected)
+    {
+        esp_ble_gatts_close(g_gatts_if, conn_id);
+        esp_ble_gap_disconnect(remote_device_address);
+    }
+}
+
+void ble_start_adv()
+{
+    esp_ble_gap_start_advertising(&adv_params);
+}
+
+void ble_stop_adv()
+{
+    esp_ble_gap_stop_advertising();
+}

@@ -11,6 +11,7 @@
 #include "esp_log.h"
 #include "GT911.h"
 #include "esp_timer.h"
+#include "CustomUI.h"
 
 #define LVGL_TICK_PERIOD_MS 3
 #define LVGL_TASK_MAX_DELAY_MS 500

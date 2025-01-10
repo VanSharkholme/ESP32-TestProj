@@ -109,5 +109,8 @@ void ens_stop_channel_plan(Plan *pPlan, uint8_t index)
     // stop_stim_data |= index;
     // ens_uart_send_cmd(0x31, 0x10, &stop_stim_data, 1);
     // TODO: Implement stop single channel plan command
-    ens_uart_send_cmd(0x31, 0x10, NULL, 0);
+    uint8_t ch_sel = 0;
+    ch_sel |= 1 << 4; // 方案编号全部设置为1
+    ch_sel |= 1 << index;
+    ens_uart_send_cmd(0x31, 0x10, &ch_sel, 1);
 }

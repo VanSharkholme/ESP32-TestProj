@@ -25,19 +25,28 @@ void AddSchemeBtnCallback(lv_event_t *event)
 //    UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
     lv_obj_set_user_data(scheme_scr, channel);
     update_scheme_pages();
-    set_scheme_set_page(current_page_num);
+    lv_obj_t *scheme_container = lv_obj_get_child(scheme_scr, 1);
+    lv_obj_t *page_indicator_container = lv_obj_get_child(scheme_container, 2);
+    lv_obj_t *page_num_label = lv_obj_get_child(page_indicator_container, 1);
+    current_page_num = 0;
+    set_scheme_set_page(0);
+    lv_label_set_text_fmt(page_num_label, "%d  /  %d", current_page_num + 1, valid_page_num);
+
+    
     lv_scr_load(scheme_scr);
 }
 
 void BackBtnCallback(lv_event_t *event)
 {
     lv_obj_t *scr = lv_scr_act();
+    lv_obj_t *back_scr = main_scr;
     if (scr == calib_scr)
     {
+        back_scr = lv_obj_get_user_data(scr);
         lv_obj_del_async(scr);
     }
     
-    lv_scr_load(main_scr);
+    lv_scr_load(back_scr);
 }
 
 void PlanOptionCallback(lv_event_t *event)
@@ -168,8 +177,15 @@ void AddCurrentBtnCallback(lv_event_t *event)
     lv_obj_t *channel = lv_obj_get_parent(current_container);
     UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
     refresh_channel_current(channel, 1, false);
-    if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
-        ens_start_channel_plan(ch->pPlan, ch->index);
+    // if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
+    lv_timer_pause(ch->tmp_timer);
+    lv_timer_set_repeat_count(ch->tmp_timer, 10);
+    lv_timer_reset(ch->tmp_timer);
+    ens_start_channel_plan(ch->pPlan, ch->index);
+    if(ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
+    {
+        lv_timer_resume(ch->tmp_timer);
+    }
     update_start_btn_status();
 }
 
@@ -180,8 +196,14 @@ void SubCurrentBtnCallback(lv_event_t *event)
     lv_obj_t *channel = lv_obj_get_parent(current_container);
     UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
     refresh_channel_current(channel, -1, false);
-    if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
-        ens_start_channel_plan(ch->pPlan, ch->index);
+    ens_start_channel_plan(ch->pPlan, ch->index);
+    lv_timer_pause(ch->tmp_timer);
+    lv_timer_set_repeat_count(ch->tmp_timer, 10);
+    lv_timer_reset(ch->tmp_timer);
+    if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
+    {
+        lv_timer_resume(ch->tmp_timer);
+    }
     update_start_btn_status();
 }
 
@@ -201,6 +223,14 @@ void SyncConfirmBtnCallback(lv_event_t *event)
             lv_obj_t *channel = get_channel_by_index(i);
             UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
             refresh_channel_current(channel, *difference, false);
+            ens_start_channel_plan(ch->pPlan, ch->index);
+            lv_timer_pause(ch->tmp_timer);
+            lv_timer_set_repeat_count(ch->tmp_timer, 10);
+            lv_timer_reset(ch->tmp_timer);
+            if(ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
+            {
+                lv_timer_resume(ch->tmp_timer);
+            }
         }
     }
 
@@ -332,17 +362,21 @@ void CalibPasswordConfirmBtnCallback(lv_event_t *event)
     lv_obj_t *calib_pwd_container = lv_obj_get_child(modal_bg, 0);
     lv_obj_t *calib_password_input = lv_obj_get_child(calib_pwd_container, 0);
     char *calib_password = (char *)lv_textarea_get_text(calib_password_input);
+    lv_obj_t *current_scr = lv_scr_act();
     if (strcmp(calib_password, CALIB_PWD) == 0)
     {
         lv_obj_del_async(modal_bg);
         calib_scr = create_calib_scr();
+        if (current_scr != calib_scr)
+            lv_obj_set_user_data(calib_scr, current_scr);
         lv_scr_load(calib_scr);
     } 
 }
 void CalibBtnCallback(lv_event_t *event)
 {
-    lv_obj_t *modal_bg = lv_obj_create(main_scr);
-    lv_obj_set_size(modal_bg, lv_obj_get_width(main_scr), lv_obj_get_height(main_scr));
+    lv_obj_t *current_scr = lv_scr_act();
+    lv_obj_t *modal_bg = lv_obj_create(current_scr);
+    lv_obj_set_size(modal_bg, lv_obj_get_width(current_scr), lv_obj_get_height(current_scr));
     lv_obj_set_style_bg_color(modal_bg, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(modal_bg, LV_OPA_80, 0);
     lv_obj_set_style_border_width(modal_bg, 0, 0);
@@ -521,9 +555,8 @@ void ChildLockBtnCallback(lv_event_t *event)
     bool *is_locked = (bool *)lv_obj_get_user_data(btn);
     *is_locked = !(*is_locked);
     if (*is_locked) {
-        lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &LockButton_Black_fit, NULL);
-        lv_obj_align(btn, LV_ALIGN_LEFT_MID, -17, 0);
-        lv_obj_set_size(btn, LockButton_Black_fit.header.w, LockButton_Black_fit.header.h);
+        lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &LockIconTransparent_fit, NULL);
+        lv_obj_set_size(btn, LockIconTransparent_fit.header.w, LockIconTransparent_fit.header.h);
         for (int i = 0; i < 4; ++i) {
             lv_obj_t *channel = get_channel_by_index(i);
             set_channel_state(channel, UI_CHANNEL_STATE_DISABLED, false);
@@ -543,8 +576,8 @@ void ChildLockBtnCallback(lv_event_t *event)
         lv_obj_set_style_text_color(start_label, lv_color_hex(0xdfe1ea), 0);
     }
     else {
-        lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &LockIconTransparent_fit, NULL);
-        lv_obj_set_size(btn, LockIconTransparent_fit.header.w, LockIconTransparent_fit.header.h);
+        lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &UnlockIconTransparent_fit, NULL);
+        lv_obj_set_size(btn, UnlockIconTransparent_fit.header.w, UnlockIconTransparent_fit.header.h);
         lv_obj_align(btn, LV_ALIGN_LEFT_MID, 0, 0);
         for (int i = 0; i < 4; ++i) {
             lv_obj_t *channel = get_channel_by_index(i);
@@ -578,7 +611,8 @@ void TimerLabelClickCallback(lv_event_t *event)
                 set_channel_state(channel, UI_CHANNEL_STATE_DROPPED, false);
             }
             else {
-                    set_channel_timer_state(channel, UI_TIMER_STATE_START);
+                lv_timer_pause(ch->tmp_timer);
+                set_channel_timer_state(channel, UI_TIMER_STATE_START);
             }
         }
     }
@@ -607,9 +641,13 @@ void StimulationStartBtnCallback(lv_event_t *event)
             }
             else {
                 if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
+                {
+                    lv_timer_pause(ch->tmp_timer);
                     set_channel_timer_state(channel, UI_TIMER_STATE_START);
+                }
             }
         }
+        pause_hibernation_timer();
 
     }
     else {
@@ -623,6 +661,7 @@ void StimulationStartBtnCallback(lv_event_t *event)
             if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
                 set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
         }
+        resume_hibernation_timer();
     }
 }
 

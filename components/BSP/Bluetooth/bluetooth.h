@@ -15,12 +15,15 @@
 #include "esp_gatt_common_api.h"
 #include "nvs_op.h"
 #include "protocal.h"
+#include "TCA9555.h"
 
 #define BT_TAG "BT"
 #define BT_APP_ID 0x11
 
 void bluetooth_init();
 void ble_send_data(uint8_t *data, uint16_t length);
-
+void ble_disconnect();
+void ble_start_adv();
+void ble_stop_adv();
 
 #endif // !BLUETOOTH_H

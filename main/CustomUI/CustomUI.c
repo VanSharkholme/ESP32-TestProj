@@ -26,9 +26,30 @@ pPlan page3[UI_PLAN_NUM_PER_PAGE];
 uint8_t valid_page_num = 0;
 uint8_t current_page_num = 0;
 
+lv_timer_t *g_hibernation_timer = NULL;
+bool is_hibernating = false;
+
 static uint8_t calib_cnt = 0;
 static uint8_t to_modify_plan_ids[4] = {255, 255, 255, 255};
 static uint8_t to_modify_plan_cnt = 0;
+
+void reset_tmp_timer(UI_Channel *ch)
+{
+    lv_timer_pause(ch->tmp_timer);
+    lv_timer_reset(ch->tmp_timer);
+    lv_timer_set_repeat_count(ch->tmp_timer, 10);
+}
+
+void tmp_timer_cb(lv_timer_t *timer)
+{
+    UI_Channel *ch = timer->user_data;
+    if (ch->tmp_timer->repeat_count == 0)
+    {
+        reset_tmp_timer(ch);
+        ens_stop_channel_plan(ch->pPlan, ch->index);
+    }
+    
+}
 
 void Channel_Struct_Init(UI_Channel *channel, char *name, uint8_t index) {
     channel->name = name;
@@ -38,6 +59,8 @@ void Channel_Struct_Init(UI_Channel *channel, char *name, uint8_t index) {
     channel->timer.remaining_seconds = 0;
     channel->timer.state = UI_TIMER_STATE_UNINIT;
     channel->state = UI_CHANNEL_STATE_UNINIT;
+    channel->tmp_timer = lv_timer_create(tmp_timer_cb, 1000, channel);
+    lv_timer_set_repeat_count(channel->tmp_timer, 10);
 }
 
 void Channel_Struct_Clear(UI_Channel *channel, bool need_to_free_pPlan)
@@ -317,6 +340,7 @@ void check_last_channel_finished(void)
         *is_stimulation_running = false;
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Green_fit, NULL);
         statework.st_bit.StRun = 0;
+        resume_hibernation_timer();
     }    
 }
 
@@ -765,16 +789,28 @@ void set_battery_level()
 void set_bluetooth_status(bool is_connected)
 {
     lv_obj_t *scr = lv_disp_get_scr_act(NULL);
-    lv_obj_t *top_bar = lv_obj_get_child(scr, 0);
-    lv_obj_t *bluetooth_icon;
-    if (scr == charging_scr)
-        bluetooth_icon = lv_obj_get_child(top_bar, 1);
-    else
-        bluetooth_icon = lv_obj_get_child(top_bar, 2);
+    lv_obj_t *charge_top_bar = lv_obj_get_child(charging_scr, 0);
+    lv_obj_t *main_top_bar = lv_obj_get_child(main_scr, 0);
+    lv_obj_t *calib_top_bar = lv_obj_get_child(calib_scr, 0);
+    lv_obj_t *scheme_top_bar = lv_obj_get_child(scheme_scr, 0);
+    lv_obj_t *main_bluetooth_icon = lv_obj_get_child(main_top_bar, 2);
+    lv_obj_t *charging_bluetooth_icon = lv_obj_get_child(charge_top_bar, 1);
+    lv_obj_t *calib_bluetooth_icon = lv_obj_get_child(calib_top_bar, 2);
+    lv_obj_t *scheme_bluetooth_icon = lv_obj_get_child(scheme_top_bar, 2);
     if (is_connected)
-        lv_img_set_src(bluetooth_icon, &BluetoothIcon_fit);
+    {
+        lv_img_set_src(main_bluetooth_icon, &BluetoothIcon_fit);
+        lv_img_set_src(charging_bluetooth_icon, &BluetoothIcon_fit);
+        lv_img_set_src(calib_bluetooth_icon, &BluetoothIcon_fit);
+        lv_img_set_src(scheme_bluetooth_icon, &BluetoothIcon_fit);
+    }
     else
-        lv_img_set_src(bluetooth_icon, &Bluetooth_Disconnect_fit);
+    {
+        lv_img_set_src(main_bluetooth_icon, &Bluetooth_Disconnect_fit);
+        lv_img_set_src(charging_bluetooth_icon, &Bluetooth_Disconnect_fit);
+        lv_img_set_src(calib_bluetooth_icon, &Bluetooth_Disconnect_fit);
+        lv_img_set_src(scheme_bluetooth_icon, &Bluetooth_Disconnect_fit);
+    }
 }
 
 lv_obj_t *create_top_bar(lv_obj_t *scr, bool is_main_scr, bool is_charging_scr)
@@ -789,8 +825,8 @@ lv_obj_t *create_top_bar(lv_obj_t *scr, bool is_main_scr, bool is_charging_scr)
     if (is_main_scr)
     {
         lv_obj_t *child_lock_btn = lv_imgbtn_create(top_bar);
-        lv_imgbtn_set_src(child_lock_btn, LV_IMGBTN_STATE_RELEASED, NULL, &LockIconTransparent_fit, NULL);
-        lv_obj_set_size(child_lock_btn, LockIconTransparent_fit.header.w, LockIconTransparent_fit.header.h);
+        lv_imgbtn_set_src(child_lock_btn, LV_IMGBTN_STATE_RELEASED, NULL, &UnlockIconTransparent_fit, NULL);
+        lv_obj_set_size(child_lock_btn, UnlockIconTransparent_fit.header.w, UnlockIconTransparent_fit.header.h);
         lv_obj_align(child_lock_btn, LV_ALIGN_LEFT_MID, 0, 0);
         addCallbackforImgBtn(child_lock_btn);
         lv_obj_add_event_cb(child_lock_btn, ChildLockBtnCallback, LV_EVENT_CLICKED, NULL);
@@ -886,6 +922,22 @@ void update_start_btn_status()
     }
     
     
+}
+
+void pause_all_channels()
+{
+    lv_obj_t *btn = lv_obj_get_child(main_scr, 3);
+    bool *is_stimulation_running = (bool*)lv_obj_get_user_data(btn);
+    *is_stimulation_running = false;
+    lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Green_fit, NULL);
+    lv_obj_t *stimulation_start_label = lv_obj_get_child(main_scr, 4);
+    lv_label_set_text(stimulation_start_label, "全部开始");
+    for (int i = 0; i < 4; ++i) {
+        lv_obj_t *channel = get_channel_by_index(i);
+        UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
+        if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
+            set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
+    }
 }
 
 lv_obj_t *create_main_scr() {
@@ -1193,6 +1245,48 @@ void exit_charging_scr()
     lv_scr_load(act_scr);
 }
 
+void load_main_scr()
+{
+    lv_scr_load(main_scr);
+}
+
+void pause_hibernation_timer()
+{
+    lv_timer_pause(g_hibernation_timer);
+}
+
+void resume_hibernation_timer()
+{
+    lv_timer_resume(g_hibernation_timer);
+}
+
+void reset_hibernation_timer()
+{
+    lv_timer_reset(g_hibernation_timer);
+}
+
+void hibernate_timer_cb(lv_timer_t *timer)
+{
+    static bool first_call = true;
+    if (first_call) {
+        first_call = false;
+        return;
+    }
+    lv_timer_pause(g_hibernation_timer);
+    lv_timer_reset(g_hibernation_timer);
+    TCA9555_SetPinState(TCA9555_PIN_BL_EN, 0);
+    is_hibernating = true;
+}
+
+void wakeup()
+{
+    if (is_hibernating) {
+        is_hibernating = false;
+        lv_timer_reset(g_hibernation_timer);
+        lv_timer_resume(g_hibernation_timer);
+    }
+}
+
 void CustomUI() {
     main_scr = create_main_scr();
     scheme_scr = create_scheme_scr();
@@ -1204,4 +1298,8 @@ void CustomUI() {
 //    lv_scr_load(charging_scr);
     lv_scr_load(main_scr);
     update_start_btn_status();
+
+    g_hibernation_timer = lv_timer_create(hibernate_timer_cb, 10 * 60 * 1000, NULL); // 10分钟
+    lv_timer_set_repeat_count(g_hibernation_timer, -1);
+    lv_timer_ready(g_hibernation_timer);
 }

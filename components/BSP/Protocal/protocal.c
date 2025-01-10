@@ -2,8 +2,11 @@
 
 void set_channel_plan(uint8_t index, Plan *plan, bool is_force_refresh);
 void update_start_btn_status();
+void load_main_scr();
 bool lvgl_lock(void);
+void clear_all_channels();
 void lvgl_unlock(void);
+void reset_hibernation_timer();
 
 frame_t *parse_frame(uint8_t *frame)
 {
@@ -55,6 +58,7 @@ void construct_frame(frame_t *f, uint8_t *frame)
 
 void cmd_handler(frame_t *f)
 {
+    reset_hibernation_timer();
     switch (f->cmd)
     {
         case PROTOCAL_CMD_FIRMWARE_UPGRADE:
@@ -128,7 +132,7 @@ void cmd_handler(frame_t *f)
                     channel_indicator >>= 1;
                 }
                 bt_plan.channel_num = channel_num;
-                // nvs_save_plans(saved_plans);
+                clear_all_channels();
                 no_data_respond(f);
                 ens_uart_send(f->raw_data, f->raw_data_len);
             }
@@ -160,6 +164,7 @@ void cmd_handler(frame_t *f)
                 {
                     set_channel_plan(channel_id, &bt_plan, true);
                     update_start_btn_status();
+                    load_main_scr();
                     lvgl_unlock();
                 }
                 

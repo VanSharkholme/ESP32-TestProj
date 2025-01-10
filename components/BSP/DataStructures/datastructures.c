@@ -348,16 +348,16 @@ void reset_schemeset()
     saved_plans[6].is_bluetooth = false;
     saved_plans[6].current_mA = 10;
     saved_plans[6].total_time_min = 10;
-    saved_plans[6].pulse_width_us = 300;
+    saved_plans[6].pulse_width_us = 1000;
     saved_plans[6].scheme_type = SCHEME_TYPE_LOW;
     saved_plans[6].freq_min = 40;
     saved_plans[6].freq_max = 40;
     saved_plans[6].freq_type = FREQ_TYPE_FIXED;
     saved_plans[6].wave_type = WAVE_TYPE_DUAL_PHASE_SQUARE;
     saved_plans[6].wave_rise_ms = 1000;
-    saved_plans[6].work_time_sec = 3;
+    saved_plans[6].work_time_sec = 10;
     saved_plans[6].wave_fall_ms = 1000;
-    saved_plans[6].break_time_sec = 10;
+    saved_plans[6].break_time_sec = 1;
     
 }
 
