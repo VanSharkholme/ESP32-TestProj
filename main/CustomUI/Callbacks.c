@@ -632,16 +632,16 @@ void StimulationStartBtnCallback(lv_event_t *event)
         lv_obj_t *stimulation_start_label = lv_obj_get_child(main_scr, 4);
         lv_label_set_text(stimulation_start_label, "全部暂停");
         for (int i = 0; i < 4; ++i) {
-            bool impedance_flag = adc_check_impedance(i);
             lv_obj_t *channel = get_channel_by_index(i);
             UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
-            if (impedance_flag) {
-                if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
+            if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
+            {
+                bool impedance_flag = adc_check_impedance(i);
+                if (impedance_flag) {
+                    // if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
                     set_channel_state(channel, UI_CHANNEL_STATE_DROPPED, false);
-            }
-            else {
-                if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
-                {
+                }
+                else {
                     lv_timer_pause(ch->tmp_timer);
                     set_channel_timer_state(channel, UI_TIMER_STATE_START);
                 }
