@@ -168,8 +168,8 @@ float adc_impedance_measure(uint8_t channel_sel)
 {
     uint8_t recv_buf[6] = {0};
     uint8_t channel = channel_sel;
-    ens_uart_send_cmd(0x50, 0x10, &channel, 1);
-    ens_uart_recv(recv_buf, 6);
+    // ens_uart_send_cmd(0x50, 0x10, &channel, 1);
+    // ens_uart_recv(recv_buf, 6);
     sum = 0;
     ESP_LOGI("ADC", "Stim Started");
     for (uint8_t i = 0; i < 10; i++)
@@ -194,7 +194,7 @@ float adc_impedance_measure(uint8_t channel_sel)
     float impedance = 18* ave_max * 1000 / 80 / 100;
     ESP_LOGI("ADC", "Average Max Voltage: %.2f mV", ave_max);
     ESP_LOGI("ADC", "Impedance: %.2f", impedance);
-    ens_uart_send_cmd(0x50, 0x11, &channel, 1);
+    // ens_uart_send_cmd(0x50, 0x11, &channel, 1);
     // ens_uart_recv(recv_buf, 6);
     ESP_LOGI("ADC", "Stim Ended");
     TCA9555_SetPinState(TCA9555_PIN_ADC_EN, 1);
