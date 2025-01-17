@@ -58,17 +58,17 @@ typedef enum {
 #define TCA9555_PIN_BL_EN 0x02       //使能背光
 #define TCA9555_PIN_GREEN 0x03        //绿灯
 #define TCA9555_PIN_YELLOW 0x04        //黄灯
-#define TCA9555_PIN_5 0x05
+#define TCA9555_PIN_BOOST_EN 0x05      //升压使能
 #define TCA9555_PIN_ADC_ADDR0 0x06
 #define TCA9555_PIN_ADC_ADDR1 0x07
 #define TCA9555_PIN_CHR_STA_IND 0x08 //充电输入检测  0 有接入充电口
 #define TCA9555_PIN_5V_PWR 0x09      //暖芯迦片子上电
 #define TCA9555_PIN_ADC_EN 0x0A      //刺激电压采集EN
 #define TCA9555_PIN_BL_ADJ 0x0B      //输入 ，按键短按检测，控制屏开关
-#define TCA9555_PIN_14 0x0C
-#define TCA9555_PIN_15 0x0D
-#define TCA9555_PIN_16 0x0E
-#define TCA9555_PIN_17 0x0F
+#define TCA9555_PIN_H_I_EN 0x0C
+#define TCA9555_PIN_H_I_EN1 0x0D
+#define TCA9555_PIN_I_SET1 0x0E  //BOOST 档位 0 0 15V， 1 0 28.9V， 0 1 46.8V， 1 1 60.7V
+#define TCA9555_PIN_I_SET2 0x0F
 
 typedef struct 
 {

@@ -119,12 +119,12 @@ void app_main(void)
     // while(1);
     TCA9555_Init();
     // TCA9554_Init();
+    TCA9555_SetPinState(TCA9555_PIN_5V_PWR,1);
     TCA9555_SetPinState(TCA9555_PIN_BL_EN, 1);
     TCA9555_SetPinState(TCA9555_PIN_GREEN, 0);
     TCA9555_SetPinState(TCA9555_PIN_YELLOW, 0);
 
-    TCA9555_SetPinState(TCA9555_PIN_5V_PWR, 1);
-    TCA9555_SetPinState(TCA9555_PIN_ADC_EN, 1);
+    
 
     // TCA9554_SetPinState(TCA9554_PIN_2, 1);
     // TCA9554_SetPinState(TCA9554_PIN_5, 0);
@@ -133,6 +133,7 @@ void app_main(void)
     FuelGauge_Get_SOC();
     GT_Init();
     IMU_Init();
+    xTaskCreate(tca9555_task, "tca9555_task", 4096, NULL, 1, NULL);
     lvgl_init_setup();
     if (lvgl_lock())
     {
@@ -146,7 +147,7 @@ void app_main(void)
 
     //xTaskCreate(test_task, "test_task", 4096, NULL, 1, NULL);
 
-    xTaskCreate(tca9555_task, "tca9555_task", 4096, NULL, 1, NULL);
+    
 
     // IMU_read_data(accel_data, gyro_data, 256);
     // for (uint16_t i = 0; i < 256; i++)

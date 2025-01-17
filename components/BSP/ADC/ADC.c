@@ -190,13 +190,14 @@ float adc_impedance_measure(uint8_t channel_sel)
         // ESP_LOGI("ADC", "Max Voltage: %d mV", max);
     }
     float ave_max = (float)sum / 10;
-    float impedance = ave_max * 1000 / 64 / 33;
+    //float impedance = ave_max * 1000 / 64 / 33;
+    float impedance = 18* ave_max * 1000 / 80 / 100;
     ESP_LOGI("ADC", "Average Max Voltage: %.2f mV", ave_max);
     ESP_LOGI("ADC", "Impedance: %.2f", impedance);
     ens_uart_send_cmd(0x50, 0x11, &channel, 1);
     // ens_uart_recv(recv_buf, 6);
     ESP_LOGI("ADC", "Stim Ended");
-    
+    TCA9555_SetPinState(TCA9555_PIN_ADC_EN, 1);
     return impedance;
 
 }

@@ -29,7 +29,7 @@ void TCA9555_Dev_Init(i2c_master_bus_handle_t bus_handle)
     i2c_device_config_t TCA9555_config = {
        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
        .device_address = TCA9555_I2C_ADDR,
-       .scl_speed_hz = 400000,
+       .scl_speed_hz = 100000,
     };
     PCA9546_SelectChannel(TCA9555_I2C_CHANNEL);
     if(ESP_OK == i2c_master_probe(bus_handle, TCA9555_I2C_ADDR, -1))
@@ -189,6 +189,10 @@ void tca9555_task(void *arg)
     TCA9555_SetPinState(TCA9555_PIN_5V_PWR,1);
     statework.st_data = 0;
     statework.st_bit.StOn = 1;
+
+TCA9555_SetPinState(TCA9555_PIN_I_SET1, 1);//1 0 28.9V，
+TCA9555_SetPinState(TCA9555_PIN_I_SET2, 0);
+    
     for(;;)
     { 
         checkIO();
@@ -303,7 +307,7 @@ void checkIO(void)
         }
         if(g_battery_soc > 90)
             statework.st_bit.StChrgOK = 1;
-        else if(g_battery_soc < 20)
+        else if(g_battery_soc < 25)
             statework.st_bit.StPowerLow = 1;
         else
         {
@@ -322,7 +326,7 @@ void checkIO(void)
 void ledTask(StateWork statew)
 {
     if(statew.st_bit.StRun)
-        LedCtrl(LedYellowFlashSlow,0,0);
+        LedCtrl(LedYellowOn,0,0);
     else if(statew.st_bit.StChrgOK)
         LedCtrl(LedGreenOn,0,0);
     else if(statew.st_bit.StChrg)
@@ -346,7 +350,7 @@ void LedCtrl(uint16_t uwLedType,uint16_t uwBLinkTime,uint16_t uwExeCycle)
 {
 	static uint16_t uwBLinkCnt[6] = {0,0,0,0,0,0};
 	static uint16_t uwBLinkCnt1[6] = {0,0,0,0,0,0};
-	static uint16_t uwBLinkPeriod[6] = {20,50,20,20,50,20};//20*20ms=400ms
+	static uint16_t uwBLinkPeriod[6] = {20,50,20,20,50,15};//20*20ms=400ms
 	static uint16_t uwTotalBLinkPeriod[6] = {0,0,0,0,0,0};
 	//uwBLinkPeriod[uwLedType] =  5 * uwExeCycle;//20ms  //20
     if(++uwBLinkCnt1[uwLedType] <= (uwBLinkPeriod[uwLedType]>>1))
