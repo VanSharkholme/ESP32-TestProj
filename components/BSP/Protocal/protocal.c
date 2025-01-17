@@ -134,7 +134,7 @@ void cmd_handler(frame_t *f)
                 bt_plan.channel_num = channel_num;
                 clear_all_channels();
                 no_data_respond(f);
-                ens_uart_send(f->raw_data, f->raw_data_len);
+                // ens_uart_send(f->raw_data, f->raw_data_len);
             }
             else if (f->cmd_type == PROTOCAL_CMD_TYPE_WRITE_PLAN_CHANNEL_SETTING)
             {
@@ -170,7 +170,7 @@ void cmd_handler(frame_t *f)
                 
                 // nvs_save_plans(saved_plans);
                 no_data_respond(f);
-                ens_uart_send(f->raw_data, f->raw_data_len);
+                // ens_uart_send(f->raw_data, f->raw_data_len);
             }
             break;
         }

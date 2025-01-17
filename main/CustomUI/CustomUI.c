@@ -320,6 +320,7 @@ void channel_timer_cb(lv_timer_t *timer)
     lv_label_set_text_fmt(timer_label, "%02d:%02d", ch->timer.remaining_seconds / 60, ch->timer.remaining_seconds % 60);
     if (ch->timer.remaining_seconds == 0) {
         set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
+        ens_send_stop_cmd(1 << ch->index);
     }
     // return false;
 }
@@ -370,7 +371,7 @@ void set_channel_timer_state(lv_obj_t *channel, UI_ChannelTimerState state)
     if (ch->timer.state == UI_TIMER_STATE_STOP)
     {
         lv_obj_set_style_bg_color(timer_container, lv_color_hex(0xEFF4FE), 0);
-        ens_stop_channel_plan(ch->pPlan, ch->index);
+        // ens_stop_channel_plan(ch->pPlan, ch->index);
         lv_timer_pause(ch->timer.lvtimer);
         // gptimer_stop(ch->timer.timer_handle);
         if (ch->timer.remaining_seconds == 0)
@@ -387,7 +388,7 @@ void set_channel_timer_state(lv_obj_t *channel, UI_ChannelTimerState state)
     else if (ch->timer.state == UI_TIMER_STATE_START)
     {
         lv_obj_set_style_bg_color(timer_container, lv_color_hex(0xA9EAE3), 0);
-        ens_start_channel_plan(ch->pPlan, ch->index);
+        ens_send_channel_plan_data(ch->pPlan, ch->index);
         if (ch->timer.remaining_seconds == ch->pPlan->total_time_min * 60)
         {
             // one_sec_timer_init(channel_timer_cb, channel, &ch->timer.timer_handle);
@@ -938,6 +939,7 @@ void pause_all_channels()
         if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
             set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
     }
+    ens_stop_all_channel();
 }
 
 lv_obj_t *create_main_scr() {

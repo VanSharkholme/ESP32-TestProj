@@ -91,15 +91,29 @@ void ens_uart_send_plan(Plan *plan, uint8_t channel_id)
     ens_uart_send_cmd(0x20, 0x12, data, 21);
 }
 
-void ens_start_channel_plan(Plan *pPlan, uint8_t index)
+void ens_send_channel_plan_data(Plan *pPlan, uint8_t index)
 {
     ens_uart_send_channel_base(pPlan, index);
     ens_uart_send_plan(pPlan, index);
-    uint8_t start_stim_data = 0;
-    // start_stim_data |= pPlan->id << 4;
-    start_stim_data |= 1 << 4; // 方案编号全部设置为1
-    start_stim_data |= 1 << index;
-    ens_uart_send_cmd(0x30, 0x10, &start_stim_data, 1);
+    // uint8_t start_stim_data = 0;
+    // // start_stim_data |= pPlan->id << 4;
+    // start_stim_data |= 1 << 4; // 方案编号全部设置为1
+    // start_stim_data |= 1 << index;
+    // ens_uart_send_cmd(0x30, 0x10, &start_stim_data, 1);
+}
+
+void ens_send_start_cmd(uint8_t channel_sel)
+{
+    channel_sel = channel_sel & 0x0F;
+    channel_sel |= 1 << 4; // 方案编号全部设置为1
+    ens_uart_send_cmd(0x30, 0x10, &channel_sel, 1);
+}
+
+void ens_send_stop_cmd(uint8_t channel_sel)
+{
+    channel_sel = channel_sel & 0x0F;
+    channel_sel |= 1 << 4; // 方案编号全部设置为1
+    ens_uart_send_cmd(0x31, 0x10, &channel_sel, 1);
 }
 
 void ens_stop_channel_plan(Plan *pPlan, uint8_t index)
@@ -113,4 +127,10 @@ void ens_stop_channel_plan(Plan *pPlan, uint8_t index)
     ch_sel |= 1 << 4; // 方案编号全部设置为1
     ch_sel |= 1 << index;
     ens_uart_send_cmd(0x31, 0x10, &ch_sel, 1);
+}
+
+void ens_stop_all_channel()
+{
+    uint8_t stop_all_data = 0x1F;
+    ens_uart_send_cmd(0x31, 0x10, &stop_all_data, 1);
 }

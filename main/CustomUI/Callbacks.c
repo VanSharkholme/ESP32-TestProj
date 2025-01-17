@@ -181,7 +181,8 @@ void AddCurrentBtnCallback(lv_event_t *event)
     lv_timer_pause(ch->tmp_timer);
     lv_timer_set_repeat_count(ch->tmp_timer, 10);
     lv_timer_reset(ch->tmp_timer);
-    ens_start_channel_plan(ch->pPlan, ch->index);
+    ens_send_channel_plan_data(ch->pPlan, ch->index);
+    ens_send_start_cmd(1 << ch->index);
     if(ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
     {
         lv_timer_resume(ch->tmp_timer);
@@ -196,10 +197,11 @@ void SubCurrentBtnCallback(lv_event_t *event)
     lv_obj_t *channel = lv_obj_get_parent(current_container);
     UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
     refresh_channel_current(channel, -1, false);
-    ens_start_channel_plan(ch->pPlan, ch->index);
+    ens_send_channel_plan_data(ch->pPlan, ch->index);
     lv_timer_pause(ch->tmp_timer);
     lv_timer_set_repeat_count(ch->tmp_timer, 10);
     lv_timer_reset(ch->tmp_timer);
+    ens_send_start_cmd(1 << ch->index);
     if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state != UI_TIMER_STATE_START)
     {
         lv_timer_resume(ch->tmp_timer);
@@ -215,15 +217,16 @@ void SyncConfirmBtnCallback(lv_event_t *event)
     lv_obj_t *sync_adjust_bg = lv_obj_get_child(sync_adjust_container, 0);
     lv_obj_t *difference_label = lv_obj_get_child(sync_adjust_bg, 0);
     int8_t *difference = (int8_t *)lv_obj_get_user_data(difference_label);
-    uint8_t channel_indicator = 0;
-    channel_indicator = get_channel_needing_modifying();
+    // uint8_t channel_indicator = 0;
+    // channel_indicator = get_channel_needing_modifying();
+    ens_stop_all_channel();
     for (int i = 0; i < 4; ++i) {
-        if ((channel_indicator & (1 << i)))
-        {
+        // if ((channel_indicator & (1 << i)))
+        // {
             lv_obj_t *channel = get_channel_by_index(i);
             UI_Channel *ch = (UI_Channel*)lv_obj_get_user_data(channel);
             refresh_channel_current(channel, *difference, false);
-            ens_start_channel_plan(ch->pPlan, ch->index);
+            ens_send_channel_plan_data(ch->pPlan, ch->index);
             lv_timer_pause(ch->tmp_timer);
             lv_timer_set_repeat_count(ch->tmp_timer, 10);
             lv_timer_reset(ch->tmp_timer);
@@ -231,8 +234,9 @@ void SyncConfirmBtnCallback(lv_event_t *event)
             {
                 lv_timer_resume(ch->tmp_timer);
             }
-        }
+        // }
     }
+    ens_send_start_cmd(0x0F);
 
     lv_obj_del_async(modal_bg);
     update_start_btn_status();
@@ -613,11 +617,15 @@ void TimerLabelClickCallback(lv_event_t *event)
             else {
                 lv_timer_pause(ch->tmp_timer);
                 set_channel_timer_state(channel, UI_TIMER_STATE_START);
+                ens_send_start_cmd((1 << ch->index));
             }
         }
     }
     else
+    {
         set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
+        ens_send_stop_cmd((1 << ch->index));
+    }
 
 }
 
@@ -631,6 +639,7 @@ void StimulationStartBtnCallback(lv_event_t *event)
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &PauseButton_fit, NULL);
         lv_obj_t *stimulation_start_label = lv_obj_get_child(main_scr, 4);
         lv_label_set_text(stimulation_start_label, "全部暂停");
+        uint8_t channel_sel = 0;
         for (int i = 0; i < 4; ++i) {
             lv_obj_t *channel = get_channel_by_index(i);
             UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
@@ -644,9 +653,11 @@ void StimulationStartBtnCallback(lv_event_t *event)
                 else {
                     lv_timer_pause(ch->tmp_timer);
                     set_channel_timer_state(channel, UI_TIMER_STATE_START);
+                    channel_sel |= (1 << i);
                 }
             }
         }
+        ens_send_start_cmd(channel_sel);
         pause_hibernation_timer();
 
     }
@@ -655,12 +666,17 @@ void StimulationStartBtnCallback(lv_event_t *event)
         lv_imgbtn_set_src(btn, LV_IMGBTN_STATE_RELEASED, NULL, &StartButton_Green_fit, NULL);
         lv_obj_t *stimulation_start_label = lv_obj_get_child(main_scr, 4);
         lv_label_set_text(stimulation_start_label, "全部开始");
+        uint8_t channel_sel = 0;
         for (int i = 0; i < 4; ++i) {
             lv_obj_t *channel = get_channel_by_index(i);
             UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
             if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
+            {
                 set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
+                channel_sel |= (1 << i);
+            }
         }
+        ens_send_stop_cmd(channel_sel);
         resume_hibernation_timer();
     }
 }
