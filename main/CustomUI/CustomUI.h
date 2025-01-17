@@ -150,6 +150,7 @@ extern uint8_t current_page_num;
 extern bool is_hibernating;
 
 void clear_all_channels();
+void reset_channels();
 void set_channel_state(lv_obj_t *channel, UI_ChannelState state, bool is_force_refresh);
 void set_scheme_set_page(uint8_t page);
 void refresh_channel_current(lv_obj_t *in_channel, int8_t difference, bool is_force_refresh);

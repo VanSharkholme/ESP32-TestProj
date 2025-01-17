@@ -6,6 +6,7 @@ void load_main_scr();
 bool lvgl_lock(void);
 void clear_all_channels();
 void lvgl_unlock(void);
+void reset_channels();
 void reset_hibernation_timer();
 
 frame_t *parse_frame(uint8_t *frame)
@@ -132,7 +133,11 @@ void cmd_handler(frame_t *f)
                     channel_indicator >>= 1;
                 }
                 bt_plan.channel_num = channel_num;
-                clear_all_channels();
+                if (lvgl_lock())
+                {
+                    reset_channels();
+                    lvgl_unlock();
+                }
                 no_data_respond(f);
                 // ens_uart_send(f->raw_data, f->raw_data_len);
             }

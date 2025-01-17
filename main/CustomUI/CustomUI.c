@@ -711,6 +711,19 @@ void clear_all_channels()
     set_channel_state(lv_channel_d, UI_CHANNEL_STATE_NOT_ADDED, false);
 }
 
+void reset_channels()
+{
+    for (int i = 0; i < 4; ++i) {
+    lv_obj_t *channel = get_channel_by_index(i);
+    UI_Channel *ch = (UI_Channel *) lv_obj_get_user_data(channel);
+    if (ch->state == UI_CHANNEL_STATE_ADDED && ch->timer.state == UI_TIMER_STATE_START)
+        return;
+        // set_channel_timer_state(channel, UI_TIMER_STATE_STOP);
+    }
+    clear_all_channels();
+    update_start_btn_status();
+}
+
 lv_obj_t *get_channel_by_index(uint8_t index)
 {
     lv_obj_t *container = lv_obj_get_child(main_scr, 5);
